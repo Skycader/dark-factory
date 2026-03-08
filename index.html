@@ -11,7 +11,7 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
     />
 
-    <title>Симулятор Завода v5.4</title>
+    <title>Симулятор Завода v5.5</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -693,7 +693,7 @@
         products: [],
         inventory: {},
         productionLines: [], // {id, status, durability, lastWorkTime}
-        activeJobs: [],
+        activeJobs: [], // {id, lineId, productId, totalQty, currentItemIndex, itemStartTime, itemDuration, totalRemainingTime}
         partsBalance: 2000,
         notificationsEnabled: true,
         isDarkTheme: true,
@@ -747,10 +747,12 @@
           });
         }
 
+        // ИСПРАВЛЕНО: Обрабатываем оффлайн-время ПЕРЕД применением темы и рендером
+        processOfflineProgress();
+
         applyTheme();
         updatePartsDisplay();
         updateNotifButton();
-        processActiveJobs();
       }
 
       function saveData() {
@@ -946,7 +948,7 @@
 
         appData.partsBalance -= cost;
         line.durability = 100;
-        line.lastWorkTime = Date.now(); // Сброс времени только при ремонте
+        line.lastWorkTime = Date.now();
 
         saveData();
         closeRepairModal();
@@ -1155,8 +1157,6 @@
 
         appData.partsBalance -= totalCost;
         freeLine.status = "busy";
-        // ИСПРАВЛЕНО: УБРАНО lastWorkTime = Date.now()
-        // Износ должен накапливаться, а не сбрасываться при каждом запуске
 
         const itemDuration = product.time;
         const totalDuration = itemDuration * qty;
@@ -1189,17 +1189,14 @@
           appData.productionLines.forEach((line) => {
             const job = appData.activeJobs.find((j) => j.lineId === line.id);
 
-            // Расчет цвета батарейки
             let batteryClass = "";
             if (line.durability <= 20) batteryClass = "low";
             else if (line.durability <= 50) batteryClass = "medium";
 
-            // Расчет времени до поломки
             const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
             const timeToBreakdown = formatTimeToBreakdown(hoursToBreakdown);
 
             if (job) {
-              // --- ЗАНЯТЫЙ СТАНОК ---
               const product = appData.products.find(
                 (p) => p.id === job.productId,
               );
@@ -1209,7 +1206,6 @@
               let itemProgress = (elapsedItem / job.itemDuration) * 100;
               if (itemProgress > 100) itemProgress = 100;
 
-              // Формат: "2 из 5" (без -й и шт)
               const itemCountText = `${job.currentItemIndex} из ${job.totalQty}`;
 
               list.innerHTML += `
@@ -1230,7 +1226,6 @@
                                     <div class="progress-text">${itemProgress.toFixed(1)}% | Осталось: <span class="item-time-display">${formatTime(job.itemDuration - elapsedItem)}</span></div>
                                 </div>
                             </div>
-                            <!-- Батарейка с тултипом -->
                             <div class="durability-container">
                                 <div class="battery-wrapper">
                                     <div class="battery-tooltip">До поломки: ${timeToBreakdown}</div>
@@ -1243,7 +1238,6 @@
                         </div>
                     `;
             } else {
-              // --- СВОБОДНЫЙ СТАНОК ---
               list.innerHTML += `
                         <div class="item-card line-card" id="line-card-${line.id}">
                             <div class="line-controls">
@@ -1253,7 +1247,6 @@
                             <div class="line-status free">СВОБОДНЫЙ СТАНОК</div>
                             <div style="font-size:0.8rem; color:var(--text-muted)">Станок #${line.id.toString().slice(-4)}</div>
                             <div style="font-size:2rem; color:var(--line-border); margin-top:10px;">⚙️</div>
-                            <!-- Батарейка с тултипом -->
                             <div class="durability-container">
                                 <div class="battery-wrapper">
                                     <div class="battery-tooltip">До поломки: ${timeToBreakdown}</div>
@@ -1269,7 +1262,6 @@
           });
         }
 
-        // Рендер форм запуска
         const startList = document.getElementById("start-tasks-list");
         startList.innerHTML = "";
         const freeLinesCount = appData.productionLines.filter(
@@ -1431,7 +1423,6 @@
             const bar = card.querySelector(".progress-bar");
             const text = card.querySelector(".progress-text");
             const totalTimeText = card.querySelector(".total-time-display");
-            const itemTimeText = card.querySelector(".item-time-display");
             const itemCountDisplay = card.querySelector(".item-count-display");
 
             if (bar && text) {
@@ -1457,23 +1448,34 @@
         });
       }
 
-      function processActiveJobs() {
+      // === ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ОФФЛАЙН-ПРОГРЕССА ===
+      function processOfflineProgress() {
         const now = Date.now();
         let changed = false;
+        let messages = [];
 
         for (let i = appData.activeJobs.length - 1; i >= 0; i--) {
           const job = appData.activeJobs[i];
-          const totalElapsed =
-            (now -
-              (job.itemStartTime -
-                (job.currentItemIndex - 1) * job.itemDuration * 1000)) /
-            1000;
-          const itemsDone = Math.floor(totalElapsed / job.itemDuration);
+          const product = appData.products.find((p) => p.id === job.productId);
 
-          if (itemsDone >= job.totalQty) {
+          // Рассчитываем общее время с начала ЗАДАЧИ (не текущей единицы)
+          // Формула: время начала первой единицы = itemStartTime - (currentItemIndex - 1) * itemDuration
+          const taskStartTime =
+            job.itemStartTime -
+            (job.currentItemIndex - 1) * job.itemDuration * 1000;
+          const totalElapsedSeconds = (now - taskStartTime) / 1000;
+
+          // Сколько всего единиц должно было быть сделано
+          const totalItemsCompleted = Math.floor(
+            totalElapsedSeconds / job.itemDuration,
+          );
+
+          if (totalItemsCompleted >= job.totalQty) {
+            // Вся партия готова
+            const completedQty = job.totalQty;
             if (!appData.inventory[job.productId])
               appData.inventory[job.productId] = 0;
-            appData.inventory[job.productId] += job.totalQty;
+            appData.inventory[job.productId] += completedQty;
 
             const line = appData.productionLines.find(
               (l) => l.id === job.lineId,
@@ -1482,19 +1484,54 @@
 
             appData.activeJobs.splice(i, 1);
             changed = true;
-          } else if (itemsDone > 0) {
-            if (!appData.inventory[job.productId])
-              appData.inventory[job.productId] = 0;
-            appData.inventory[job.productId] += itemsDone;
+            messages.push(
+              `${product.name}: ${completedQty} шт. (готово пока вас не было)`,
+            );
+          } else if (totalItemsCompleted > 0) {
+            // Часть партии готова
+            const newlyCompleted =
+              totalItemsCompleted - (job.currentItemIndex - 1);
 
-            job.currentItemIndex += itemsDone;
-            job.itemStartTime = now;
-            const remainingItems = job.totalQty - job.currentItemIndex + 1;
-            job.totalRemainingTime = remainingItems * job.itemDuration;
-            changed = true;
+            if (newlyCompleted > 0) {
+              if (!appData.inventory[job.productId])
+                appData.inventory[job.productId] = 0;
+              appData.inventory[job.productId] += newlyCompleted;
+
+              job.currentItemIndex += newlyCompleted;
+              job.itemStartTime = now; // Сбрасываем таймер на текущий момент
+              const remainingItems = job.totalQty - job.currentItemIndex + 1;
+              job.totalRemainingTime = remainingItems * job.itemDuration;
+
+              changed = true;
+              messages.push(
+                `${product.name}: ${newlyCompleted} шт. (сделано пока вас не было)`,
+              );
+            }
           }
         }
-        if (changed) saveData();
+
+        // Обновляем износ станков за оффлайн-время
+        appData.productionLines.forEach((line) => {
+          if (line.status === "busy") {
+            const offlineHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
+            const wear = offlineHours * WEAR_RATE_PER_HOUR;
+            line.durability = Math.max(0, line.durability - wear);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          saveData();
+          // Показываем уведомление о том, что было сделано пока вкладка была закрыта
+          if (messages.length > 0) {
+            setTimeout(() => {
+              showNotification(
+                `📦 Пока вас не было: ${messages.join(", ")}`,
+                "success",
+              );
+            }, 1000);
+          }
+        }
       }
 
       // --- СКЛАД ---
@@ -1557,7 +1594,6 @@
           const partsModal = document.getElementById("partsModal");
           const repairModal = document.getElementById("repairModal");
 
-          // Модалка запчастей
           if (partsModal && partsModal.style.display === "block") {
             if (event.key === "Escape") closePartsModal();
             if (
@@ -1569,7 +1605,6 @@
             }
           }
 
-          // Модалка ремонта
           if (repairModal && repairModal.style.display === "block") {
             if (event.key === "Escape") closeRepairModal();
             if (event.key === "Enter") {
