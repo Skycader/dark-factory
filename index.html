@@ -1262,11 +1262,33 @@
         showNotification(`Выгружено ${qty} шт.`, "success");
       }
 
-      // --- ИНИЦИАЛИЗАЦИЯ ---
-      window.onload = function () {
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    window.onload = function() {
         loadData();
         renderEditor();
-      };
+        
+        // Добавляем поддержку клавиш для модалок
+        document.addEventListener('keydown', function(event) {
+            // Проверяем, открыто ли модальное окно
+            const modal = document.getElementById('partsModal');
+            const isModalOpen = modal && modal.style.display === 'block';
+            
+            if (isModalOpen) {
+                // ESC - закрыть модальное окно
+                if (event.key === 'Escape') {
+                    closePartsModal();
+                }
+                // ENTER - подтвердить действие (если фокус не в textarea)
+                if (event.key === 'Enter') {
+                    // Не срабатываем если пользователь пишет многострочный текст
+                    if (document.activeElement.tagName !== 'TEXTAREA') {
+                        event.preventDefault(); // Чтобы не было лишних переносов
+                        applyPartsChange();
+                    }
+                }
+            }
+        });
+    };
     </script>
   </body>
 </html>
