@@ -11,7 +11,7 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
     />
 
-    <title>Симулятор Завода v5.2</title>
+    <title>Симулятор Завода v5.3</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -703,6 +703,7 @@
         "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
       const MACHINE_COST = 1000;
       const WEAR_RATE_PER_HOUR = 1; // 1% износа в час
+      const REPAIR_COST_MULTIPLIER = 100; // 1% износа = 100 запчастей
 
       // --- УТИЛИТЫ ---
       function formatTime(seconds) {
@@ -908,7 +909,10 @@
 
         repairLineId = lineId;
         const wear = (100 - line.durability).toFixed(2);
-        const cost = Math.round((100 - line.durability) * 10);
+        // ИСПРАВЛЕНО: умножаем на 100 и используем ceil для минимальной стоимости
+        const cost = Math.ceil(
+          (100 - line.durability) * REPAIR_COST_MULTIPLIER,
+        );
 
         document.getElementById("repair-line-id").textContent = line.id
           .toString()
@@ -932,7 +936,9 @@
           return;
         }
 
-        const cost = Math.round((100 - line.durability) * 10);
+        const cost = Math.ceil(
+          (100 - line.durability) * REPAIR_COST_MULTIPLIER,
+        );
 
         if (appData.partsBalance < cost) {
           showNotification("Недостаточно запчастей для ремонта!", "error");
