@@ -11,7 +11,7 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
     />
 
-    <title>Симулятор Завода v5.3</title>
+    <title>Симулятор Завода v5.4</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -909,7 +909,6 @@
 
         repairLineId = lineId;
         const wear = (100 - line.durability).toFixed(2);
-        // ИСПРАВЛЕНО: умножаем на 100 и используем ceil для минимальной стоимости
         const cost = Math.ceil(
           (100 - line.durability) * REPAIR_COST_MULTIPLIER,
         );
@@ -947,7 +946,7 @@
 
         appData.partsBalance -= cost;
         line.durability = 100;
-        line.lastWorkTime = Date.now();
+        line.lastWorkTime = Date.now(); // Сброс времени только при ремонте
 
         saveData();
         closeRepairModal();
@@ -1156,7 +1155,8 @@
 
         appData.partsBalance -= totalCost;
         freeLine.status = "busy";
-        freeLine.lastWorkTime = Date.now();
+        // ИСПРАВЛЕНО: УБРАНО lastWorkTime = Date.now()
+        // Износ должен накапливаться, а не сбрасываться при каждом запуске
 
         const itemDuration = product.time;
         const totalDuration = itemDuration * qty;
@@ -1432,7 +1432,6 @@
             const text = card.querySelector(".progress-text");
             const totalTimeText = card.querySelector(".total-time-display");
             const itemTimeText = card.querySelector(".item-time-display");
-            // НОВОЕ: Обновляем счетчик изделий в реальном времени
             const itemCountDisplay = card.querySelector(".item-count-display");
 
             if (bar && text) {
@@ -1450,7 +1449,6 @@
               if (totalTimeText)
                 totalTimeText.textContent = formatTime(job.totalRemainingTime);
 
-              // Обновляем текст "X из Y"
               if (itemCountDisplay) {
                 itemCountDisplay.textContent = `${job.currentItemIndex} из ${job.totalQty}`;
               }
