@@ -3,12 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Симулятор Завода v4.3</title>
+
+    <!-- ФАВИКОНКА -->
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
+      href="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%233498db'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%232980b9'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ecf0f1'/%3E%3C/svg%3E"
     />
+
+    <title>Симулятор Завода v5.2</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -212,7 +215,7 @@
         justify-content: center;
         text-align: center;
         position: relative;
-        min-height: 100px;
+        min-height: 120px;
         flex-direction: column;
       }
       .line-card.busy {
@@ -261,6 +264,83 @@
       }
       .btn-cancel-job {
         color: var(--warning);
+      }
+      .btn-repair-line {
+        color: var(--primary);
+      }
+
+      /* Индикатор батарейки (износ) */
+      .durability-container {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: var(--text-muted);
+      }
+      .battery-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        cursor: help;
+      }
+      .battery-icon {
+        width: 24px;
+        height: 12px;
+        border: 2px solid var(--text-muted);
+        border-radius: 2px;
+        padding: 1px;
+        position: relative;
+      }
+      .battery-icon::after {
+        content: "";
+        position: absolute;
+        right: -4px;
+        top: 3px;
+        width: 2px;
+        height: 6px;
+        background: var(--text-muted);
+      }
+      .battery-level {
+        height: 100%;
+        background: var(--success);
+        width: 100%;
+        transition:
+          width 0.3s,
+          background 0.3s;
+      }
+      .battery-level.low {
+        background: var(--danger);
+      }
+      .battery-level.medium {
+        background: var(--warning);
+      }
+
+      /* Тултип для батарейки */
+      .battery-tooltip {
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        margin-bottom: 5px;
+      }
+      .battery-wrapper:hover .battery-tooltip {
+        opacity: 1;
+        visibility: visible;
       }
 
       /* ПРОГРЕСС БАРЫ */
@@ -411,6 +491,10 @@
       .toast.success {
         background: var(--success);
       }
+      .toast.warning {
+        background: var(--warning);
+        color: #333;
+      }
     </style>
   </head>
   <body>
@@ -523,7 +607,7 @@
             style="width: auto"
             onclick="addProductionLine()"
           >
-            + Добавить линию производства
+            + Купить станок (1000 🔩)
           </button>
         </div>
 
@@ -574,6 +658,32 @@
       </div>
     </div>
 
+    <!-- Модальное окно ремонта -->
+    <div id="repairModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeRepairModal()">&times;</span>
+        <h3>Техническое обслуживание</h3>
+        <p>Станок #<span id="repair-line-id"></span></p>
+        <p>
+          Текущий износ:
+          <strong
+            id="repair-wear-percent"
+            style="color: var(--danger)"
+          ></strong>
+        </p>
+        <p>
+          Стоимость ремонта:
+          <strong id="repair-cost" style="color: var(--warning)"></strong> 🔩
+        </p>
+        <div class="form-group">
+          <label>Подтвердите ремонт</label>
+        </div>
+        <button class="btn-primary" onclick="confirmRepair()">
+          Подтвердить (Enter)
+        </button>
+      </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
@@ -582,15 +692,17 @@
       let appData = {
         products: [],
         inventory: {},
-        productionLines: [],
+        productionLines: [], // {id, status, durability, lastWorkTime}
         activeJobs: [],
-        partsBalance: 100,
+        partsBalance: 2000,
         notificationsEnabled: true,
         isDarkTheme: true,
       };
 
       const DEFAULT_IMG =
         "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
+      const MACHINE_COST = 1000;
+      const WEAR_RATE_PER_HOUR = 1; // 1% износа в час
 
       // --- УТИЛИТЫ ---
       function formatTime(seconds) {
@@ -602,8 +714,18 @@
         return `${pad(h)}:${pad(m)}:${pad(s)}`;
       }
 
+      // Формат времени до поломки (dd:hh:mm)
+      function formatTimeToBreakdown(hours) {
+        const days = Math.floor(hours / 24);
+        const hrs = Math.floor(hours % 24);
+        const mins = Math.floor((hours % 1) * 60);
+
+        const pad = (num) => num.toString().padStart(2, "0");
+        return `${pad(days)}д:${pad(hrs)}ч:${pad(mins)}м`;
+      }
+
       function loadData() {
-        const stored = localStorage.getItem("factorySimData_v4");
+        const stored = localStorage.getItem("factorySimData_v5");
         if (stored) {
           appData = JSON.parse(stored);
         } else {
@@ -616,7 +738,12 @@
             img: DEFAULT_IMG,
           });
           appData.inventory[appData.products[0].id] = 0;
-          appData.productionLines.push({ id: Date.now() + 1, status: "free" });
+          appData.productionLines.push({
+            id: Date.now() + 1,
+            status: "free",
+            durability: 100,
+            lastWorkTime: Date.now(),
+          });
         }
 
         applyTheme();
@@ -626,7 +753,7 @@
       }
 
       function saveData() {
-        localStorage.setItem("factorySimData_v4", JSON.stringify(appData));
+        localStorage.setItem("factorySimData_v5", JSON.stringify(appData));
         updatePartsDisplay();
       }
 
@@ -768,7 +895,59 @@
       window.onclick = function (event) {
         if (event.target == document.getElementById("partsModal"))
           closePartsModal();
+        if (event.target == document.getElementById("repairModal"))
+          closeRepairModal();
       };
+
+      // --- РЕМОНТ СТАНКОВ ---
+      let repairLineId = null;
+
+      function openRepairModal(lineId) {
+        const line = appData.productionLines.find((l) => l.id === lineId);
+        if (!line) return;
+
+        repairLineId = lineId;
+        const wear = (100 - line.durability).toFixed(2);
+        const cost = Math.round((100 - line.durability) * 10);
+
+        document.getElementById("repair-line-id").textContent = line.id
+          .toString()
+          .slice(-4);
+        document.getElementById("repair-wear-percent").textContent = `${wear}%`;
+        document.getElementById("repair-cost").textContent = cost;
+        document.getElementById("repairModal").style.display = "block";
+      }
+
+      function closeRepairModal() {
+        document.getElementById("repairModal").style.display = "none";
+        repairLineId = null;
+      }
+
+      function confirmRepair() {
+        if (!repairLineId) return;
+
+        const line = appData.productionLines.find((l) => l.id === repairLineId);
+        if (!line) {
+          closeRepairModal();
+          return;
+        }
+
+        const cost = Math.round((100 - line.durability) * 10);
+
+        if (appData.partsBalance < cost) {
+          showNotification("Недостаточно запчастей для ремонта!", "error");
+          return;
+        }
+
+        appData.partsBalance -= cost;
+        line.durability = 100;
+        line.lastWorkTime = Date.now();
+
+        saveData();
+        closeRepairModal();
+        renderProduction();
+        showNotification(`Станок отремонтирован! -${cost} 🔩`, "success");
+      }
 
       // --- РЕДАКТОР ---
       let editModeId = null;
@@ -876,19 +1055,33 @@
       let gameLoopInterval = null;
 
       function addProductionLine() {
-        appData.productionLines.push({ id: Date.now(), status: "free" });
+        if (appData.partsBalance < MACHINE_COST) {
+          showNotification(
+            `Недостаточно запчастей! Нужно ${MACHINE_COST}`,
+            "error",
+          );
+          return;
+        }
+
+        appData.partsBalance -= MACHINE_COST;
+        appData.productionLines.push({
+          id: Date.now(),
+          status: "free",
+          durability: 100,
+          lastWorkTime: Date.now(),
+        });
         saveData();
         renderProduction();
-        showNotification("Линия добавлена", "success");
+        showNotification(`Станок куплен! -${MACHINE_COST} 🔩`, "success");
       }
 
       function removeProductionLine(id) {
         const line = appData.productionLines.find((l) => l.id === id);
         if (line && line.status === "busy") {
-          showNotification("Нельзя удалить занятую линию!", "error");
+          showNotification("Нельзя удалить занятый станок!", "error");
           return;
         }
-        if (confirm("Удалить эту линию?")) {
+        if (confirm("Удалить этот станок?")) {
           appData.productionLines = appData.productionLines.filter(
             (l) => l.id !== id,
           );
@@ -897,7 +1090,6 @@
         }
       }
 
-      // ФУНКЦИЯ ОТМЕНЫ ПРОИЗВОДСТВА (ИСПРАВЛЕНА)
       function cancelJob(lineId) {
         const jobIndex = appData.activeJobs.findIndex(
           (j) => j.lineId === lineId,
@@ -907,15 +1099,8 @@
         const job = appData.activeJobs[jobIndex];
         const product = appData.products.find((p) => p.id === job.productId);
 
-        // currentItemIndex начинается с 1.
-        // Если currentItemIndex = 1, значит мы делаем 1-ю штуку, готовых 0.
-        // Если currentItemIndex = 2, значит 1-я готова, делаем 2-ю.
         const completedQty = job.currentItemIndex - 1;
-
-        // Сколько штук осталось сделать (недоделанных)
         const remainingQty = job.totalQty - completedQty;
-
-        // Возвращаем запчасти за недоделанные штуки
         const refundAmount = remainingQty * product.cost;
 
         if (refundAmount > 0) {
@@ -928,11 +1113,9 @@
           showNotification("Производство отменено.", "warning");
         }
 
-        // Освобождаем линию
         const line = appData.productionLines.find((l) => l.id === lineId);
         if (line) line.status = "free";
 
-        // Удаляем задачу
         appData.activeJobs.splice(jobIndex, 1);
 
         saveData();
@@ -947,7 +1130,12 @@
           (l) => l.status === "free",
         );
         if (!freeLine) {
-          showNotification("Нет свободных линий производства!", "error");
+          showNotification("Нет свободных станков!", "error");
+          return;
+        }
+
+        if (freeLine.durability <= 0) {
+          showNotification("Станок сломан! Требуется ремонт.", "error");
           return;
         }
 
@@ -962,6 +1150,7 @@
 
         appData.partsBalance -= totalCost;
         freeLine.status = "busy";
+        freeLine.lastWorkTime = Date.now();
 
         const itemDuration = product.time;
         const totalDuration = itemDuration * qty;
@@ -980,7 +1169,7 @@
         appData.activeJobs.push(job);
         saveData();
         renderProduction();
-        showNotification(`Запущено на линии #${freeLine.id}`, "success");
+        showNotification(`Запущено на станке #${freeLine.id}`, "success");
       }
 
       function renderProduction() {
@@ -989,13 +1178,22 @@
 
         if (appData.productionLines.length === 0) {
           list.innerHTML =
-            '<p style="text-align:center; color:var(--text-muted)">Нет линий производства. Добавьте линию, чтобы начать работу.</p>';
+            '<p style="text-align:center; color:var(--text-muted)">Нет станков. Купите станок, чтобы начать работу.</p>';
         } else {
           appData.productionLines.forEach((line) => {
             const job = appData.activeJobs.find((j) => j.lineId === line.id);
 
+            // Расчет цвета батарейки
+            let batteryClass = "";
+            if (line.durability <= 20) batteryClass = "low";
+            else if (line.durability <= 50) batteryClass = "medium";
+
+            // Расчет времени до поломки
+            const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
+            const timeToBreakdown = formatTimeToBreakdown(hoursToBreakdown);
+
             if (job) {
-              // --- ЗАНЯТАЯ ЛИНИЯ ---
+              // --- ЗАНЯТЫЙ СТАНОК ---
               const product = appData.products.find(
                 (p) => p.id === job.productId,
               );
@@ -1005,35 +1203,60 @@
               let itemProgress = (elapsedItem / job.itemDuration) * 100;
               if (itemProgress > 100) itemProgress = 100;
 
+              // Формат: "2 из 5" (без -й и шт)
+              const itemCountText = `${job.currentItemIndex} из ${job.totalQty}`;
+
               list.innerHTML += `
                         <div class="item-card line-card busy" id="line-card-${line.id}">
                             <div class="line-controls">
-                                <button class="line-btn btn-cancel-job" onclick="cancelJob(${line.id})" title="Отменить производство">🚫</button>
-                                <button class="line-btn btn-delete-line" onclick="removeProductionLine(${line.id})" title="Удалить линию">🗑</button>
+                                <button class="line-btn btn-repair-line" onclick="openRepairModal(${line.id})" title="Ремонт">🔧</button>
+                                <button class="line-btn btn-cancel-job" onclick="cancelJob(${line.id})" title="Отменить">🚫</button>
+                                <button class="line-btn btn-delete-line" onclick="removeProductionLine(${line.id})" title="Удалить">🗑</button>
                             </div>
                             <img src="${product.img}" class="item-img">
                             <div class="item-info" style="width:100%">
-                                <strong>Производство: ${product.name} (${job.currentItemIndex}-й из ${job.totalQty} шт)</strong>
+                                <strong>Производство: ${product.name} (<span class="item-count-display">${itemCountText}</span>)</strong>
                                 <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">
-                                    Линия #${line.id.toString().slice(-4)} | Осталось всего: <span class="total-time-display">${formatTime(job.totalRemainingTime)}</span>
+                                    Станок #${line.id.toString().slice(-4)} | Осталось всего: <span class="total-time-display">${formatTime(job.totalRemainingTime)}</span>
                                 </div>
                                 <div class="progress-container" style="display:block">
                                     <div class="progress-bar" style="width: ${itemProgress}%"></div>
                                     <div class="progress-text">${itemProgress.toFixed(1)}% | Осталось: <span class="item-time-display">${formatTime(job.itemDuration - elapsedItem)}</span></div>
                                 </div>
                             </div>
+                            <!-- Батарейка с тултипом -->
+                            <div class="durability-container">
+                                <div class="battery-wrapper">
+                                    <div class="battery-tooltip">До поломки: ${timeToBreakdown}</div>
+                                    <div class="battery-icon">
+                                        <div class="battery-level ${batteryClass}" style="width: ${line.durability}%"></div>
+                                    </div>
+                                </div>
+                                <span>${line.durability.toFixed(2)}%</span>
+                            </div>
                         </div>
                     `;
             } else {
-              // --- СВОБОДНАЯ ЛИНИЯ ---
+              // --- СВОБОДНЫЙ СТАНОК ---
               list.innerHTML += `
                         <div class="item-card line-card" id="line-card-${line.id}">
                             <div class="line-controls">
-                                <button class="line-btn btn-delete-line" onclick="removeProductionLine(${line.id})" title="Удалить линию">🗑</button>
+                                <button class="line-btn btn-repair-line" onclick="openRepairModal(${line.id})" title="Ремонт">🔧</button>
+                                <button class="line-btn btn-delete-line" onclick="removeProductionLine(${line.id})" title="Удалить">🗑</button>
                             </div>
-                            <div class="line-status free">СВОБОДНАЯ ЛИНИЯ</div>
-                            <div style="font-size:0.8rem; color:var(--text-muted)">Линия #${line.id.toString().slice(-4)}</div>
+                            <div class="line-status free">СВОБОДНЫЙ СТАНОК</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted)">Станок #${line.id.toString().slice(-4)}</div>
                             <div style="font-size:2rem; color:var(--line-border); margin-top:10px;">⚙️</div>
+                            <!-- Батарейка с тултипом -->
+                            <div class="durability-container">
+                                <div class="battery-wrapper">
+                                    <div class="battery-tooltip">До поломки: ${timeToBreakdown}</div>
+                                    <div class="battery-icon">
+                                        <div class="battery-level ${batteryClass}" style="width: ${line.durability}%"></div>
+                                    </div>
+                                </div>
+                                <span>${line.durability.toFixed(2)}%</span>
+                            </div>
                         </div>
                     `;
             }
@@ -1044,12 +1267,12 @@
         const startList = document.getElementById("start-tasks-list");
         startList.innerHTML = "";
         const freeLinesCount = appData.productionLines.filter(
-          (l) => l.status === "free",
+          (l) => l.status === "free" && l.durability > 0,
         ).length;
 
         if (freeLinesCount === 0) {
           startList.innerHTML =
-            '<p style="color:var(--danger)">Все линии заняты! Освободите линию или добавьте новую.</p>';
+            '<p style="color:var(--danger)">Все станки заняты или требуют ремонта!</p>';
         } else {
           appData.products.forEach((p) => {
             startList.innerHTML += `
@@ -1064,7 +1287,7 @@
                                 <button onclick="changeQty(this, 1)">+</button>
                                 <button class="btn-primary" style="width:auto; margin-left:10px;" 
                                     onclick="startProduction(${p.id}, parseInt(document.getElementById('qty-${p.id}').value))">
-                                    Начать (${freeLinesCount} св. лин.)
+                                    Начать (${freeLinesCount} св.)
                                 </button>
                             </div>
                         </div>
@@ -1096,21 +1319,17 @@
           const job = appData.activeJobs[i];
           const elapsedItem = (now - job.itemStartTime) / 1000;
 
-          // ПРОВЕРКА: Готова ли текущая единица?
           if (elapsedItem >= job.itemDuration) {
-            // 1. Добавляем на склад готовую единицу
             if (!appData.inventory[job.productId])
               appData.inventory[job.productId] = 0;
             appData.inventory[job.productId]++;
 
-            // 2. Переходим к следующей единице
             if (job.currentItemIndex < job.totalQty) {
               job.currentItemIndex++;
-              job.itemStartTime = now; // Сброс таймера для новой штуки
+              job.itemStartTime = now;
               const remainingItems = job.totalQty - job.currentItemIndex + 1;
               job.totalRemainingTime = remainingItems * job.itemDuration;
             } else {
-              // 3. Вся партия готова
               const line = appData.productionLines.find(
                 (l) => l.id === job.lineId,
               );
@@ -1126,7 +1345,6 @@
               continue;
             }
           } else {
-            // Просто обновляем общее время для отображения
             const remainingItems = job.totalQty - job.currentItemIndex + 1;
             const currentRemaining = job.itemDuration - elapsedItem;
             job.totalRemainingTime =
@@ -1136,7 +1354,67 @@
 
         if (needsSave) saveData();
         if (needsRender) renderProduction();
-        else updateProgressBarsVisuals();
+        else {
+          updateProgressBarsVisuals();
+          updateDurabilityVisuals();
+        }
+      }
+
+      function updateDurabilityVisuals() {
+        const now = Date.now();
+        let needsSave = false;
+
+        appData.productionLines.forEach((line) => {
+          if (line.status === "busy") {
+            const workTimeHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
+            const wear = workTimeHours * WEAR_RATE_PER_HOUR;
+
+            const newDurability = Math.max(0, 100 - wear);
+
+            if (Math.abs(newDurability - line.durability) > 0.01) {
+              line.durability = newDurability;
+              needsSave = true;
+            }
+
+            const card = document.getElementById(`line-card-${line.id}`);
+            if (card) {
+              const batteryLevel = card.querySelector(".battery-level");
+              const batteryText = card.querySelector(
+                ".durability-container span",
+              );
+              const batteryTooltip = card.querySelector(".battery-tooltip");
+
+              if (batteryLevel && batteryText) {
+                batteryLevel.style.width = `${line.durability}%`;
+                batteryText.textContent = `${line.durability.toFixed(2)}%`;
+
+                batteryLevel.classList.remove("low", "medium");
+                if (line.durability <= 20) batteryLevel.classList.add("low");
+                else if (line.durability <= 50)
+                  batteryLevel.classList.add("medium");
+
+                if (batteryTooltip) {
+                  const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
+                  batteryTooltip.textContent = `До поломки: ${formatTimeToBreakdown(hoursToBreakdown)}`;
+                }
+
+                if (
+                  line.durability < 10 &&
+                  line.durability > 5 &&
+                  !card.dataset.warned
+                ) {
+                  showNotification(
+                    `Станок #${line.id.toString().slice(-4)} требует ремонта!`,
+                    "warning",
+                  );
+                  card.dataset.warned = "true";
+                }
+              }
+            }
+          }
+        });
+
+        if (needsSave) saveData();
       }
 
       function updateProgressBarsVisuals() {
@@ -1148,6 +1426,8 @@
             const text = card.querySelector(".progress-text");
             const totalTimeText = card.querySelector(".total-time-display");
             const itemTimeText = card.querySelector(".item-time-display");
+            // НОВОЕ: Обновляем счетчик изделий в реальном времени
+            const itemCountDisplay = card.querySelector(".item-count-display");
 
             if (bar && text) {
               const now = Date.now();
@@ -1163,6 +1443,11 @@
                 text.innerHTML = `${itemProgress.toFixed(1)}% | Осталось: ${formatTime(itemRemaining)}`;
               if (totalTimeText)
                 totalTimeText.textContent = formatTime(job.totalRemainingTime);
+
+              // Обновляем текст "X из Y"
+              if (itemCountDisplay) {
+                itemCountDisplay.textContent = `${job.currentItemIndex} из ${job.totalQty}`;
+              }
             }
           }
         });
@@ -1174,7 +1459,6 @@
 
         for (let i = appData.activeJobs.length - 1; i >= 0; i--) {
           const job = appData.activeJobs[i];
-          // Считаем сколько штук должно было быть готово за время простоя
           const totalElapsed =
             (now -
               (job.itemStartTime -
@@ -1183,7 +1467,6 @@
           const itemsDone = Math.floor(totalElapsed / job.itemDuration);
 
           if (itemsDone >= job.totalQty) {
-            // Все готово
             if (!appData.inventory[job.productId])
               appData.inventory[job.productId] = 0;
             appData.inventory[job.productId] += job.totalQty;
@@ -1196,8 +1479,6 @@
             appData.activeJobs.splice(i, 1);
             changed = true;
           } else if (itemsDone > 0) {
-            // Часть готова
-            // Добавляем готовые на склад
             if (!appData.inventory[job.productId])
               appData.inventory[job.productId] = 0;
             appData.inventory[job.productId] += itemsDone;
@@ -1262,33 +1543,38 @@
         showNotification(`Выгружено ${qty} шт.`, "success");
       }
 
-    // --- ИНИЦИАЛИЗАЦИЯ ---
-    window.onload = function() {
+      // --- ИНИЦИАЛИЗАЦИЯ ---
+      window.onload = function () {
         loadData();
         renderEditor();
-        
-        // Добавляем поддержку клавиш для модалок
-        document.addEventListener('keydown', function(event) {
-            // Проверяем, открыто ли модальное окно
-            const modal = document.getElementById('partsModal');
-            const isModalOpen = modal && modal.style.display === 'block';
-            
-            if (isModalOpen) {
-                // ESC - закрыть модальное окно
-                if (event.key === 'Escape') {
-                    closePartsModal();
-                }
-                // ENTER - подтвердить действие (если фокус не в textarea)
-                if (event.key === 'Enter') {
-                    // Не срабатываем если пользователь пишет многострочный текст
-                    if (document.activeElement.tagName !== 'TEXTAREA') {
-                        event.preventDefault(); // Чтобы не было лишних переносов
-                        applyPartsChange();
-                    }
-                }
+
+        // Поддержка клавиш для модалок
+        document.addEventListener("keydown", function (event) {
+          const partsModal = document.getElementById("partsModal");
+          const repairModal = document.getElementById("repairModal");
+
+          // Модалка запчастей
+          if (partsModal && partsModal.style.display === "block") {
+            if (event.key === "Escape") closePartsModal();
+            if (
+              event.key === "Enter" &&
+              document.activeElement.tagName !== "TEXTAREA"
+            ) {
+              event.preventDefault();
+              applyPartsChange();
             }
+          }
+
+          // Модалка ремонта
+          if (repairModal && repairModal.style.display === "block") {
+            if (event.key === "Escape") closeRepairModal();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              confirmRepair();
+            }
+          }
         });
-    };
+      };
     </script>
   </body>
 </html>
