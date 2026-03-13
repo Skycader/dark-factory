@@ -10,8 +10,7 @@
       type="image/svg+xml"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
     />
-
-    <title>Симулятор Завода v5.5</title>
+    <title>Симулятор Завода v5.6</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -692,8 +691,8 @@
       let appData = {
         products: [],
         inventory: {},
-        productionLines: [], // {id, status, durability, lastWorkTime}
-        activeJobs: [], // {id, lineId, productId, totalQty, currentItemIndex, itemStartTime, itemDuration, totalRemainingTime}
+        productionLines: [],
+        activeJobs: [],
         partsBalance: 2000,
         notificationsEnabled: true,
         isDarkTheme: true,
@@ -702,8 +701,8 @@
       const DEFAULT_IMG =
         "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
       const MACHINE_COST = 1000;
-      const WEAR_RATE_PER_HOUR = 1; // 1% износа в час
-      const REPAIR_COST_MULTIPLIER = 100; // 1% износа = 100 запчастей
+      const WEAR_RATE_PER_HOUR = 1;
+      const REPAIR_COST_MULTIPLIER = 10; // ИСПРАВЛЕНО: было 100, теперь 10
 
       // --- УТИЛИТЫ ---
       function formatTime(seconds) {
@@ -715,12 +714,10 @@
         return `${pad(h)}:${pad(m)}:${pad(s)}`;
       }
 
-      // Формат времени до поломки (dd:hh:mm)
       function formatTimeToBreakdown(hours) {
         const days = Math.floor(hours / 24);
         const hrs = Math.floor(hours % 24);
         const mins = Math.floor((hours % 1) * 60);
-
         const pad = (num) => num.toString().padStart(2, "0");
         return `${pad(days)}д:${pad(hrs)}ч:${pad(mins)}м`;
       }
@@ -747,7 +744,6 @@
           });
         }
 
-        // ИСПРАВЛЕНО: Обрабатываем оффлайн-время ПЕРЕД применением темы и рендером
         processOfflineProgress();
 
         applyTheme();
@@ -1157,6 +1153,7 @@
 
         appData.partsBalance -= totalCost;
         freeLine.status = "busy";
+        freeLine.lastWorkTime = Date.now(); // ИСПРАВЛЕНО: сброс времени при запуске производства
 
         const itemDuration = product.time;
         const totalDuration = itemDuration * qty;
@@ -1448,7 +1445,6 @@
         });
       }
 
-      // === ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ОФФЛАЙН-ПРОГРЕССА ===
       function processOfflineProgress() {
         const now = Date.now();
         let changed = false;
@@ -1458,20 +1454,15 @@
           const job = appData.activeJobs[i];
           const product = appData.products.find((p) => p.id === job.productId);
 
-          // Рассчитываем общее время с начала ЗАДАЧИ (не текущей единицы)
-          // Формула: время начала первой единицы = itemStartTime - (currentItemIndex - 1) * itemDuration
           const taskStartTime =
             job.itemStartTime -
             (job.currentItemIndex - 1) * job.itemDuration * 1000;
           const totalElapsedSeconds = (now - taskStartTime) / 1000;
-
-          // Сколько всего единиц должно было быть сделано
           const totalItemsCompleted = Math.floor(
             totalElapsedSeconds / job.itemDuration,
           );
 
           if (totalItemsCompleted >= job.totalQty) {
-            // Вся партия готова
             const completedQty = job.totalQty;
             if (!appData.inventory[job.productId])
               appData.inventory[job.productId] = 0;
@@ -1484,11 +1475,8 @@
 
             appData.activeJobs.splice(i, 1);
             changed = true;
-            messages.push(
-              `${product.name}: ${completedQty} шт. (готово пока вас не было)`,
-            );
+            messages.push(`${product.name}: ${completedQty} шт.`);
           } else if (totalItemsCompleted > 0) {
-            // Часть партии готова
             const newlyCompleted =
               totalItemsCompleted - (job.currentItemIndex - 1);
 
@@ -1498,19 +1486,16 @@
               appData.inventory[job.productId] += newlyCompleted;
 
               job.currentItemIndex += newlyCompleted;
-              job.itemStartTime = now; // Сбрасываем таймер на текущий момент
+              job.itemStartTime = now;
               const remainingItems = job.totalQty - job.currentItemIndex + 1;
               job.totalRemainingTime = remainingItems * job.itemDuration;
 
               changed = true;
-              messages.push(
-                `${product.name}: ${newlyCompleted} шт. (сделано пока вас не было)`,
-              );
+              messages.push(`${product.name}: ${newlyCompleted} шт.`);
             }
           }
         }
 
-        // Обновляем износ станков за оффлайн-время
         appData.productionLines.forEach((line) => {
           if (line.status === "busy") {
             const offlineHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
@@ -1522,7 +1507,6 @@
 
         if (changed) {
           saveData();
-          // Показываем уведомление о том, что было сделано пока вкладка была закрыта
           if (messages.length > 0) {
             setTimeout(() => {
               showNotification(
@@ -1589,7 +1573,6 @@
         loadData();
         renderEditor();
 
-        // Поддержка клавиш для модалок
         document.addEventListener("keydown", function (event) {
           const partsModal = document.getElementById("partsModal");
           const repairModal = document.getElementById("repairModal");
