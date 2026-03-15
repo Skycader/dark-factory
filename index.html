@@ -10,7 +10,8 @@
       type="image/svg+xml"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
     />
-    <title>Симулятор Завода v5.6</title>
+
+    <title>Симулятор Завода v5.8</title>
     <style>
       :root {
         /* Темная тема по умолчанию */
@@ -436,6 +437,25 @@
         text-align: center;
       }
 
+      /* Кнопки перемещения */
+      .btn-move {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0 3px;
+        transition: color 0.2s;
+      }
+      .btn-move:hover {
+        color: var(--primary);
+      }
+      .btn-move:disabled {
+        color: var(--border);
+        cursor: not-allowed;
+        opacity: 0.3;
+      }
+
       /* Модальное окно */
       .modal {
         display: none;
@@ -599,7 +619,12 @@
         <h2>Цех производства</h2>
 
         <div
-          style="display: flex; justify-content: flex-end; margin-bottom: 1rem"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+          "
         >
           <button
             class="btn-primary"
@@ -607,6 +632,13 @@
             onclick="addProductionLine()"
           >
             + Купить станок (1000 🔩)
+          </button>
+          <button
+            class="btn-primary"
+            style="width: auto; background-color: var(--warning); color: #333"
+            onclick="openRepairAllModal()"
+          >
+            🔧 Починить всё
           </button>
         </div>
 
@@ -683,6 +715,26 @@
       </div>
     </div>
 
+    <!-- Модальное окно ремонта всех станков -->
+    <div id="repairAllModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeRepairAllModal()">&times;</span>
+        <h3>Ремонт всех станков</h3>
+        <p>Станков требует ремонта: <strong id="repair-all-count">0</strong></p>
+        <p>
+          Общая стоимость:
+          <strong id="repair-all-cost" style="color: var(--warning)"></strong>
+          🔩
+        </p>
+        <div class="form-group">
+          <label>Подтвердите ремонт всех станков</label>
+        </div>
+        <button class="btn-primary" onclick="confirmRepairAll()">
+          Подтвердить (Enter)
+        </button>
+      </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
@@ -702,7 +754,7 @@
         "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
       const MACHINE_COST = 1000;
       const WEAR_RATE_PER_HOUR = 1;
-      const REPAIR_COST_MULTIPLIER = 10; // ИСПРАВЛЕНО: было 100, теперь 10
+      const REPAIR_COST_MULTIPLIER = 10;
 
       // --- УТИЛИТЫ ---
       function formatTime(seconds) {
@@ -896,6 +948,8 @@
           closePartsModal();
         if (event.target == document.getElementById("repairModal"))
           closeRepairModal();
+        if (event.target == document.getElementById("repairAllModal"))
+          closeRepairAllModal();
       };
 
       // --- РЕМОНТ СТАНКОВ ---
@@ -950,6 +1004,73 @@
         closeRepairModal();
         renderProduction();
         showNotification(`Станок отремонтирован! -${cost} 🔩`, "success");
+      }
+
+      // --- РЕМОНТ ВСЕХ СТАНКОВ ---
+      function openRepairAllModal() {
+        const damagedLines = appData.productionLines.filter(
+          (l) => l.durability < 100,
+        );
+
+        if (damagedLines.length === 0) {
+          showNotification("Все станки исправны!", "success");
+          return;
+        }
+
+        const totalCost = damagedLines.reduce((sum, line) => {
+          return (
+            sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER)
+          );
+        }, 0);
+
+        document.getElementById("repair-all-count").textContent =
+          damagedLines.length;
+        document.getElementById("repair-all-cost").textContent = totalCost;
+        document.getElementById("repairAllModal").style.display = "block";
+      }
+
+      function closeRepairAllModal() {
+        document.getElementById("repairAllModal").style.display = "none";
+      }
+
+      function confirmRepairAll() {
+        const damagedLines = appData.productionLines.filter(
+          (l) => l.durability < 100,
+        );
+
+        if (damagedLines.length === 0) {
+          closeRepairAllModal();
+          return;
+        }
+
+        const totalCost = damagedLines.reduce((sum, line) => {
+          return (
+            sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER)
+          );
+        }, 0);
+
+        if (appData.partsBalance < totalCost) {
+          showNotification(
+            `Недостаточно запчастей! Нужно ${totalCost}`,
+            "error",
+          );
+          return;
+        }
+
+        appData.partsBalance -= totalCost;
+
+        damagedLines.forEach((line) => {
+          line.durability = 100;
+          line.lastWorkTime = Date.now();
+        });
+
+        saveData();
+        closeRepairAllModal();
+        renderProduction();
+        showNotification(
+          `Все станки отремонтированы! -${totalCost} 🔩`,
+          "success",
+        );
       }
 
       // --- РЕДАКТОР ---
@@ -1020,6 +1141,29 @@
         }
       }
 
+      // === НОВАЯ ФУНКЦИЯ: Перемещение изделий ===
+      function moveProduct(index, direction) {
+        const newIndex = index + direction;
+
+        // Проверка границ
+        if (newIndex < 0 || newIndex >= appData.products.length) {
+          return;
+        }
+
+        // Меняем местами элементы массива
+        [appData.products[index], appData.products[newIndex]] = [
+          appData.products[newIndex],
+          appData.products[index],
+        ];
+
+        saveData();
+        renderEditor();
+        showNotification(
+          direction === -1 ? "Поднято вверх ⬆️" : "Опущено вниз ⬇️",
+          "success",
+        );
+      }
+
       function resetForm() {
         document.getElementById("prod-id").value = "";
         document.getElementById("prod-name").value = "";
@@ -1036,7 +1180,17 @@
       function renderEditor() {
         const list = document.getElementById("products-list");
         list.innerHTML = "";
-        appData.products.forEach((p) => {
+
+        if (appData.products.length === 0) {
+          list.innerHTML =
+            '<p style="text-align:center; color:var(--text-muted)">Нет изделий. Добавьте первое изделие!</p>';
+          return;
+        }
+
+        appData.products.forEach((p, index) => {
+          const isFirst = index === 0;
+          const isLast = index === appData.products.length - 1;
+
           list.innerHTML += `
                 <div class="item-card">
                     <img src="${p.img}" class="item-img">
@@ -1045,7 +1199,9 @@
                         <span class="item-meta">${p.desc}</span><br>
                         <span class="item-meta">⏱ ${formatTime(p.time)} / шт | 🔩 ${p.cost} запч.</span>
                     </div>
-                    <div>
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <button class="btn-move" onclick="moveProduct(${index}, -1)" ${isFirst ? "disabled" : ""} title="Вверх">⬆️</button>
+                        <button class="btn-move" onclick="moveProduct(${index}, 1)" ${isLast ? "disabled" : ""} title="Вниз">⬇️</button>
                         <button class="btn-edit" onclick="editProduct(${p.id})">✏️</button>
                         <button class="btn-danger" onclick="deleteProduct(${p.id})">🗑</button>
                     </div>
@@ -1153,7 +1309,7 @@
 
         appData.partsBalance -= totalCost;
         freeLine.status = "busy";
-        freeLine.lastWorkTime = Date.now(); // ИСПРАВЛЕНО: сброс времени при запуске производства
+        freeLine.lastWorkTime = Date.now();
 
         const itemDuration = product.time;
         const totalDuration = itemDuration * qty;
@@ -1576,6 +1732,7 @@
         document.addEventListener("keydown", function (event) {
           const partsModal = document.getElementById("partsModal");
           const repairModal = document.getElementById("repairModal");
+          const repairAllModal = document.getElementById("repairAllModal");
 
           if (partsModal && partsModal.style.display === "block") {
             if (event.key === "Escape") closePartsModal();
@@ -1593,6 +1750,14 @@
             if (event.key === "Enter") {
               event.preventDefault();
               confirmRepair();
+            }
+          }
+
+          if (repairAllModal && repairAllModal.style.display === "block") {
+            if (event.key === "Escape") closeRepairAllModal();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              confirmRepairAll();
             }
           }
         });
