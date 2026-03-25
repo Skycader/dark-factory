@@ -1,971 +1,1243 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <!-- ФАВИКОНКА -->
-    <link rel="icon" type="image/svg+xml" href="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%233498db'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%232980b9'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ecf0f1'/%3E%3C/svg%3E">
-    
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%233498db'/><path d='M50 15 L55 35 L75 35 L70 50 L85 60 L65 75 L70 90 L50 80 L30 90 L35 75 L15 60 L30 50 L25 35 L45 35 Z' fill='%232980b9'/><circle cx='50' cy='50' r='8' fill='%23ecf0f1'/></svg>"
+    />
+
     <title>Симулятор Завода v5.9</title>
     <style>
-        :root {
-            /* Темная тема по умолчанию */
-            --bg-body: #1a1a1a;
-            --bg-card: #2d2d2d;
-            --text-main: #ecf0f1;
-            --text-muted: #bdc3c7;
-            --nav-bg: #000000;
-            --border: #444;
-            --primary: #3498db;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f1c40f;
-            --input-bg: #333;
-            --line-border: #555;
+      :root {
+        /* Темная тема по умолчанию */
+        --bg-body: #1a1a1a;
+        --bg-card: #2d2d2d;
+        --text-main: #ecf0f1;
+        --text-muted: #bdc3c7;
+        --nav-bg: #000000;
+        --border: #444;
+        --primary: #3498db;
+        --success: #2ecc71;
+        --danger: #e74c3c;
+        --warning: #f1c40f;
+        --input-bg: #333;
+        --line-border: #555;
+      }
+
+      /* Светлая тема */
+      body.light-theme {
+        --bg-body: #f4f7f6;
+        --bg-card: #ffffff;
+        --text-main: #333333;
+        --text-muted: #666666;
+        --nav-bg: #2c3e50;
+        --border: #ddd;
+        --input-bg: #fff;
+        --line-border: #ccc;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        transition:
+          background-color 0.3s,
+          color 0.3s;
+      }
+
+      /* Навигация */
+      nav {
+        background-color: var(--nav-bg);
+        color: #fff;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .nav-center {
+        display: flex;
+        gap: 1rem;
+      }
+      .nav-right {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      nav button {
+        background: none;
+        border: 2px solid transparent;
+        color: #fff;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-radius: 5px;
+        transition: 0.3s;
+      }
+
+      nav button:hover,
+      nav button.active {
+        border-color: var(--primary);
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-action-btn {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+      }
+      .nav-action-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .parts-display {
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .parts-display:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Контейнер */
+      .container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+
+      /* Секции */
+      .section {
+        display: none;
+        background: var(--bg-card);
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s;
+      }
+
+      .section.active {
+        display: block;
+      }
+
+      h2 {
+        margin-top: 0;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 0.5rem;
+        color: var(--text-main);
+      }
+      h3 {
+        color: var(--text-main);
+        margin-top: 1.5rem;
+      }
+
+      /* Формы */
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.3rem;
+        font-weight: bold;
+        color: var(--text-main);
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        box-sizing: border-box;
+        background: var(--input-bg);
+        color: var(--text-main);
+      }
+
+      button.btn-primary {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.7rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 1rem;
+      }
+      button.btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      /* Карточки (Общие стили) */
+      .item-card {
+        border: 1px solid var(--border);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: var(--bg-card);
+      }
+
+      .item-img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        background: #333;
+      }
+
+      .item-info {
+        flex-grow: 1;
+      }
+      .item-meta {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      /* Стили для ЛИНИЙ (GRID) */
+      .lines-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .lines-grid.columns-1 {
+        grid-template-columns: 1fr;
+      }
+      .lines-grid.columns-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .lines-grid.columns-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .lines-grid.columns-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .lines-grid.columns-5 {
+        grid-template-columns: repeat(5, 1fr);
+      }
+      .lines-grid.columns-6 {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      .line-card {
+        border: 2px dashed var(--line-border);
+        background: rgba(0, 0, 0, 0.05);
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        min-height: 150px;
+        flex-direction: column;
+        padding: 1rem;
+      }
+      .line-card.busy {
+        border-style: solid;
+        border-color: var(--success);
+        background: rgba(46, 204, 113, 0.05);
+        text-align: left;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .line-status {
+        font-weight: bold;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .line-status.free {
+        color: var(--text-muted);
+      }
+      .line-status.busy {
+        color: var(--success);
+        display: none;
+      }
+
+      .line-controls {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: flex;
+        gap: 5px;
+      }
+      .line-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0;
+        z-index: 10;
+        transition: transform 0.2s;
+      }
+      .line-btn:hover {
+        transform: scale(1.2);
+      }
+      .btn-delete-line {
+        color: var(--danger);
+      }
+      .btn-cancel-job {
+        color: var(--warning);
+      }
+      .btn-repair-line {
+        color: var(--primary);
+      }
+
+      /* Индикатор батарейки (износ) */
+      .durability-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        margin-top: auto;
+      }
+      .battery-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        cursor: help;
+      }
+      .battery-icon {
+        width: 24px;
+        height: 12px;
+        border: 2px solid var(--text-muted);
+        border-radius: 2px;
+        padding: 1px;
+        position: relative;
+      }
+      .battery-icon::after {
+        content: "";
+        position: absolute;
+        right: -4px;
+        top: 3px;
+        width: 2px;
+        height: 6px;
+        background: var(--text-muted);
+      }
+      .battery-level {
+        height: 100%;
+        background: var(--success);
+        width: 100%;
+        transition:
+          width 0.3s,
+          background 0.3s;
+      }
+      .battery-level.low {
+        background: var(--danger);
+      }
+      .battery-level.medium {
+        background: var(--warning);
+      }
+
+      /* Тултип для батарейки */
+      .battery-tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        z-index: 100;
+        margin-bottom: 5px;
+      }
+      .battery-wrapper:hover .battery-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* ПРОГРЕСС БАРЫ */
+      .progress-container {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        height: 24px;
+        width: 100%;
+        margin-top: 0.5rem;
+        overflow: hidden;
+        display: none;
+        position: relative;
+      }
+      .progress-bar {
+        background-color: var(--success);
+        height: 100%;
+        width: 0%;
+        transition: width 0.2s linear;
+      }
+      .progress-text {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        top: 0;
+        line-height: 24px;
+        font-size: 11px;
+        color: white;
+        text-shadow: 0 0 2px black;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 5px;
+        box-sizing: border-box;
+      }
+
+      /* Управление запуском */
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+      .controls input {
+        width: 60px;
+        text-align: center;
+      }
+
+      /* Склад */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.8rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-main);
+      }
+      th {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      .btn-danger {
+        background-color: var(--danger);
+        color: white;
+        border: none;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-edit {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 5px;
+      }
+      .btn-unload {
+        background-color: var(--warning);
+        color: #333;
+        border: none;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 5px;
+      }
+      .unload-input {
+        width: 60px;
+        padding: 2px;
+        text-align: center;
+      }
+
+      /* Кнопки перемещения */
+      .btn-move {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0 3px;
+        transition: color 0.2s;
+      }
+      .btn-move:hover {
+        color: var(--primary);
+      }
+      .btn-move:disabled {
+        color: var(--border);
+        cursor: not-allowed;
+        opacity: 0.3;
+      }
+      .btn-position {
+        background: none;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0 3px;
+        transition: color 0.2s;
+      }
+      .btn-position:hover {
+        color: var(--warning);
+      }
+
+      /* Настройки сетки */
+      .grid-settings {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+      }
+      .grid-settings label {
+        margin: 0;
+        font-weight: normal;
+      }
+      .grid-settings select {
+        width: auto;
+        min-width: 80px;
+      }
+
+      /* Модальное окно */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: var(--bg-card);
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 300px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .close {
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      /* Уведомления */
+      #toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999;
+      }
+      .toast {
+        background: #333;
+        color: #fff;
+        padding: 12px 24px;
+        margin-top: 10px;
+        border-radius: 4px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        transition: opacity 0.5s;
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+      .toast.error {
+        background: var(--danger);
+      }
+      .toast.success {
+        background: var(--success);
+      }
+      .toast.warning {
+        background: var(--warning);
+        color: #333;
+      }
+
+      /* Адаптивность для GRID */
+      @media (max-width: 1200px) {
+        .lines-grid.columns-6,
+        .lines-grid.columns-5 {
+          grid-template-columns: repeat(4, 1fr);
         }
-
-        /* Светлая тема */
-        body.light-theme {
-            --bg-body: #f4f7f6;
-            --bg-card: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --nav-bg: #2c3e50;
-            --border: #ddd;
-            --input-bg: #fff;
-            --line-border: #ccc;
+      }
+      @media (max-width: 900px) {
+        .lines-grid.columns-4,
+        .lines-grid.columns-3 {
+          grid-template-columns: repeat(2, 1fr);
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* Навигация */
-        nav {
-            background-color: var(--nav-bg);
-            color: #fff;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .nav-center { display: flex; gap: 1rem; }
-        .nav-right { display: flex; gap: 0.5rem; align-items: center; }
-
-        nav button {
-            background: none;
-            border: 2px solid transparent;
-            color: #fff;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            font-size: 0.9rem;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        nav button:hover, nav button.active {
-            border-color: var(--primary);
-            background-color: rgba(255,255,255,0.1);
-        }
-
-        .nav-action-btn {
-            border: 1px solid rgba(255,255,255,0.3);
-            font-size: 0.85rem;
-            padding: 0.4rem 0.8rem;
-        }
-        .nav-action-btn:hover {
-            background-color: rgba(255,255,255,0.2);
-        }
-
-        .parts-display {
-            font-weight: bold;
-            background: rgba(255,255,255,0.1);
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .parts-display:hover { background: rgba(255,255,255,0.2); }
-
-        /* Контейнер */
-        .container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        /* Секции */
-        .section {
-            display: none;
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background 0.3s;
-        }
-
-        .section.active { display: block; }
-
-        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; color: var(--text-main); }
-        h3 { color: var(--text-main); margin-top: 1.5rem; }
-
-        /* Формы */
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.3rem; font-weight: bold; color: var(--text-main); }
-        input, textarea, select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            box-sizing: border-box;
-            background: var(--input-bg);
-            color: var(--text-main);
-        }
-
-        button.btn-primary {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.7rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1rem;
-        }
-        button.btn-primary:hover { opacity: 0.9; }
-
-        /* Карточки (Общие стили) */
-        .item-card {
-            border: 1px solid var(--border);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: var(--bg-card);
-        }
-
-        .item-img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            background: #333;
-        }
-
-        .item-info { flex-grow: 1; }
-        .item-meta { font-size: 0.9rem; color: var(--text-muted); }
-
-        /* Стили для ЛИНИЙ (GRID) */
+      }
+      @media (max-width: 600px) {
         .lines-grid {
-            display: grid;
-            gap: 1rem;
-            margin-bottom: 1rem;
+          grid-template-columns: 1fr !important;
         }
-        .lines-grid.columns-1 { grid-template-columns: 1fr; }
-        .lines-grid.columns-2 { grid-template-columns: repeat(2, 1fr); }
-        .lines-grid.columns-3 { grid-template-columns: repeat(3, 1fr); }
-        .lines-grid.columns-4 { grid-template-columns: repeat(4, 1fr); }
-        .lines-grid.columns-5 { grid-template-columns: repeat(5, 1fr); }
-        .lines-grid.columns-6 { grid-template-columns: repeat(6, 1fr); }
-
-        .line-card {
-            border: 2px dashed var(--line-border);
-            background: rgba(0,0,0,0.05);
-            justify-content: center;
-            text-align: center;
-            position: relative;
-            min-height: 150px;
-            flex-direction: column;
-            padding: 1rem;
-        }
-        .line-card.busy {
-            border-style: solid;
-            border-color: var(--success);
-            background: rgba(46, 204, 113, 0.05);
-            text-align: left;
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .line-status { 
-            font-weight: bold; 
-            margin-bottom: 5px; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .line-status.free { color: var(--text-muted); }
-        .line-status.busy { color: var(--success); display: none; }
-        
-        .line-controls {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            display: flex;
-            gap: 5px;
-        }
-        .line-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0;
-            z-index: 10;
-            transition: transform 0.2s;
-        }
-        .line-btn:hover { transform: scale(1.2); }
-        .btn-delete-line { color: var(--danger); }
-        .btn-cancel-job { color: var(--warning); }
-        .btn-repair-line { color: var(--primary); }
-
-        /* Индикатор батарейки (износ) */
-        .durability-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: var(--text-muted);
-            margin-top: auto;
-        }
-        .battery-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            cursor: help;
-        }
-        .battery-icon {
-            width: 24px;
-            height: 12px;
-            border: 2px solid var(--text-muted);
-            border-radius: 2px;
-            padding: 1px;
-            position: relative;
-        }
-        .battery-icon::after {
-            content: '';
-            position: absolute;
-            right: -4px;
-            top: 3px;
-            width: 2px;
-            height: 6px;
-            background: var(--text-muted);
-        }
-        .battery-level {
-            height: 100%;
-            background: var(--success);
-            width: 100%;
-            transition: width 0.3s, background 0.3s;
-        }
-        .battery-level.low { background: var(--danger); }
-        .battery-level.medium { background: var(--warning); }
-
-        /* Тултип для батарейки */
-        .battery-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            z-index: 100;
-            margin-bottom: 5px;
-        }
-        .battery-wrapper:hover .battery-tooltip {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* ПРОГРЕСС БАРЫ */
-        .progress-container {
-            background-color: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            height: 24px;
-            width: 100%;
-            margin-top: 0.5rem;
-            overflow: hidden;
-            display: none;
-            position: relative;
-        }
-        .progress-bar {
-            background-color: var(--success);
-            height: 100%;
-            width: 0%;
-            transition: width 0.2s linear;
-        }
-        .progress-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            top: 0;
-            line-height: 24px;
-            font-size: 11px;
-            color: white;
-            text-shadow: 0 0 2px black;
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 5px;
-            box-sizing: border-box;
-        }
-
-        /* Управление запуском */
-        .controls { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0; }
-        .controls input { width: 60px; text-align: center; }
-        
-        /* Склад */
-        table { width: 100%; border-collapse: collapse; }
-        th, td {
-            text-align: left;
-            padding: 0.8rem;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-main);
-        }
-        th { background-color: rgba(0,0,0,0.05); }
-        
-        .btn-danger { background-color: var(--danger); color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 4px; cursor: pointer; }
-        .btn-edit { background-color: var(--primary); color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-        .btn-unload { background-color: var(--warning); color: #333; border: none; padding: 0.3rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 5px;}
-        .unload-input { width: 60px; padding: 2px; text-align: center; }
-        
-        /* Кнопки перемещения */
-        .btn-move { 
-            background: none; 
-            border: none; 
-            color: var(--text-muted); 
-            cursor: pointer; 
-            font-size: 1.2rem; 
-            padding: 0 3px;
-            transition: color 0.2s;
-        }
-        .btn-move:hover { color: var(--primary); }
-        .btn-move:disabled { 
-            color: var(--border); 
-            cursor: not-allowed; 
-            opacity: 0.3;
-        }
-        .btn-position {
-            background: none;
-            border: none;
-            color: var(--primary);
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0 3px;
-            transition: color 0.2s;
-        }
-        .btn-position:hover { color: var(--warning); }
-
-        /* Настройки сетки */
-        .grid-settings {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-        .grid-settings label {
-            margin: 0;
-            font-weight: normal;
-        }
-        .grid-settings select {
-            width: auto;
-            min-width: 80px;
-        }
-
-        /* Модальное окно */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 100; 
-            left: 0; top: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.5); 
-        }
-        .modal-content {
-            background-color: var(--bg-card);
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 300px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .close { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-
-        /* Уведомления */
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 999;
-        }
-        .toast {
-            background: #333;
-            color: #fff;
-            padding: 12px 24px;
-            margin-top: 10px;
-            border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
-        }
-        .toast.show { opacity: 1; }
-        .toast.error { background: var(--danger); }
-        .toast.success { background: var(--success); }
-        .toast.warning { background: var(--warning); color: #333; }
-
-        /* Адаптивность для GRID */
-        @media (max-width: 1200px) {
-            .lines-grid.columns-6,
-            .lines-grid.columns-5 {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-        @media (max-width: 900px) {
-            .lines-grid.columns-4,
-            .lines-grid.columns-3 {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        @media (max-width: 600px) {
-            .lines-grid {
-                grid-template-columns: 1fr !important;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <nav>
+      <div class="nav-center">
+        <button onclick="showSection('editor')" id="nav-editor" class="active">
+          1. Редактор
+        </button>
+        <button onclick="showSection('production')" id="nav-production">
+          2. Производство
+        </button>
+        <button onclick="showSection('warehouse')" id="nav-warehouse">
+          3. Склад
+        </button>
+      </div>
 
-<nav>
-    <div class="nav-center">
-        <button onclick="showSection('editor')" id="nav-editor" class="active">1. Редактор</button>
-        <button onclick="showSection('production')" id="nav-production">2. Производство</button>
-        <button onclick="showSection('warehouse')" id="nav-warehouse">3. Склад</button>
-    </div>
-
-    <div class="nav-right">
-        <div class="parts-display" onclick="openPartsModal()" title="Нажмите для управления">
-            🔩 <span id="nav-parts-count">0</span>
+      <div class="nav-right">
+        <div
+          class="parts-display"
+          onclick="openPartsModal()"
+          title="Нажмите для управления"
+        >
+          🔩 <span id="nav-parts-count">0</span>
         </div>
 
-        <button class="nav-action-btn" onclick="exportData()" title="Скачать базу данных (JSON)">💾 Экспорт</button>
-        <button class="nav-action-btn" onclick="document.getElementById('import-file').click()" title="Загрузить базу данных">📂 Импорт</button>
-        <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(this)">
+        <button
+          class="nav-action-btn"
+          onclick="exportData()"
+          title="Скачать базу данных (JSON)"
+        >
+          💾 Экспорт
+        </button>
+        <button
+          class="nav-action-btn"
+          onclick="document.getElementById('import-file').click()"
+          title="Загрузить базу данных"
+        >
+          📂 Импорт
+        </button>
+        <input
+          type="file"
+          id="import-file"
+          style="display: none"
+          accept=".json"
+          onchange="importData(this)"
+        />
 
-        <button onclick="toggleNotifications()" id="btn-notif" title="Вкл/Выкл уведомления">🔔</button>
+        <button
+          onclick="toggleNotifications()"
+          id="btn-notif"
+          title="Вкл/Выкл уведомления"
+        >
+          🔔
+        </button>
         <button onclick="toggleTheme()" title="Светлая/Темная тема">🌓</button>
-    </div>
-</nav>
+      </div>
+    </nav>
 
-<div class="container">
-
-    <!-- МЕНЮ 1: РЕДАКТОР -->
-    <div id="editor" class="section active">
+    <div class="container">
+      <!-- МЕНЮ 1: РЕДАКТОР -->
+      <div id="editor" class="section active">
         <h2>Редактор изделий</h2>
-        <input type="hidden" id="prod-id">
-        
+        <input type="hidden" id="prod-id" />
+
         <div class="form-group">
-            <label>Название изделия</label>
-            <input type="text" id="prod-name" placeholder="Например: Автомобиль">
+          <label>Название изделия</label>
+          <input
+            type="text"
+            id="prod-name"
+            placeholder="Например: Автомобиль"
+          />
         </div>
         <div class="form-group">
-            <label>Описание</label>
-            <textarea id="prod-desc" rows="2" placeholder="Краткое описание"></textarea>
+          <label>Описание</label>
+          <textarea
+            id="prod-desc"
+            rows="2"
+            placeholder="Краткое описание"
+          ></textarea>
         </div>
         <div class="form-group">
-            <label>Время на сборку 1 шт. (секунд)</label>
-            <input type="number" id="prod-time" value="10">
+          <label>Время на сборку 1 шт. (секунд)</label>
+          <input type="number" id="prod-time" value="10" />
         </div>
         <div class="form-group">
-            <label>Стоимость в запчастях (шт.)</label>
-            <input type="number" id="prod-cost" value="10" min="0">
+          <label>Стоимость в запчастях (шт.)</label>
+          <input type="number" id="prod-cost" value="10" min="0" />
         </div>
         <div class="form-group">
-            <label>Ссылка на аватарку (URL)</label>
-            <input type="text" id="prod-img" placeholder="https://...">
+          <label>Ссылка на аватарку (URL)</label>
+          <input type="text" id="prod-img" placeholder="https://..." />
         </div>
-        <button class="btn-primary" id="btn-save-prod" onclick="saveProduct()">Добавить изделие</button>
+        <button class="btn-primary" id="btn-save-prod" onclick="saveProduct()">
+          Добавить изделие
+        </button>
 
         <h3>Список изделий</h3>
         <div id="products-list"></div>
-    </div>
+      </div>
 
-    <!-- МЕНЮ 2: ПРОИЗВОДСТВО -->
-    <div id="production" class="section">
+      <!-- МЕНЮ 2: ПРОИЗВОДСТВО -->
+      <div id="production" class="section">
         <h2>Цех производства</h2>
-        
+
         <!-- Настройки сетки -->
         <div class="grid-settings">
-            <label>📐 Кол-во колонок:</label>
-            <select id="grid-columns" onchange="changeGridColumns()">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-            </select>
-            <button class="btn-primary" style="width:auto;" onclick="addProductionLine()">+ Купить станок (1000 🔩)</button>
-            <button class="btn-primary" style="width:auto; background-color: var(--warning); color: #333;" onclick="openRepairAllModal()">🔧 Починить всё</button>
-        </div>
-        
-        <h3>Линии производства</h3>
-        <div id="lines-and-tasks-list" class="lines-grid columns-3">
-            <!-- Сюда рендерятся и свободные, и занятые линии -->
+          <label>📐 Кол-во колонок:</label>
+          <select id="grid-columns" onchange="changeGridColumns()">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+          <button
+            class="btn-primary"
+            style="width: auto"
+            onclick="addProductionLine()"
+          >
+            + Купить станок (1000 🔩)
+          </button>
+          <button
+            class="btn-primary"
+            style="width: auto; background-color: var(--warning); color: #333"
+            onclick="openRepairAllModal()"
+          >
+            🔧 Починить всё
+          </button>
         </div>
 
-        <hr style="border-color:var(--border); margin: 2rem 0;">
+        <h3>Линии производства</h3>
+        <div id="lines-and-tasks-list" class="lines-grid columns-3">
+          <!-- Сюда рендерятся и свободные, и занятые линии -->
+        </div>
+
+        <hr style="border-color: var(--border); margin: 2rem 0" />
 
         <h3>Запустить новую задачу</h3>
         <div id="start-tasks-list"></div>
-    </div>
+      </div>
 
-    <!-- МЕНЮ 3: СКЛАД -->
-    <div id="warehouse" class="section">
+      <!-- МЕНЮ 3: СКЛАД -->
+      <div id="warehouse" class="section">
         <h2>Склад готовой продукции</h2>
         <table>
-            <thead>
-                <tr>
-                    <th>Изделие</th>
-                    <th>Количество</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody id="inventory-list"></tbody>
+          <thead>
+            <tr>
+              <th>Изделие</th>
+              <th>Количество</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-list"></tbody>
         </table>
+      </div>
     </div>
 
-</div>
-
-<!-- Модальное окно запчастей -->
-<div id="partsModal" class="modal">
-    <div class="modal-content">
+    <!-- Модальное окно запчастей -->
+    <div id="partsModal" class="modal">
+      <div class="modal-content">
         <span class="close" onclick="closePartsModal()">&times;</span>
         <h3>Управление запчастями</h3>
         <p>Текущий баланс: <strong id="modal-parts-count">0</strong></p>
         <div class="form-group">
-            <label>Изменить количество (+/-)</label>
-            <input type="number" id="parts-change-val" placeholder="Например: 100 или -50">
+          <label>Изменить количество (+/-)</label>
+          <input
+            type="number"
+            id="parts-change-val"
+            placeholder="Например: 100 или -50"
+          />
         </div>
-        <button class="btn-primary" onclick="applyPartsChange()">Применить</button>
+        <button class="btn-primary" onclick="applyPartsChange()">
+          Применить
+        </button>
+      </div>
     </div>
-</div>
 
-<!-- Модальное окно ремонта -->
-<div id="repairModal" class="modal">
-    <div class="modal-content">
+    <!-- Модальное окно ремонта -->
+    <div id="repairModal" class="modal">
+      <div class="modal-content">
         <span class="close" onclick="closeRepairModal()">&times;</span>
         <h3>Техническое обслуживание</h3>
         <p>Станок #<span id="repair-line-id"></span></p>
-        <p>Текущий износ: <strong id="repair-wear-percent" style="color:var(--danger)"></strong></p>
-        <p>Стоимость ремонта: <strong id="repair-cost" style="color:var(--warning)"></strong> 🔩</p>
+        <p>
+          Текущий износ:
+          <strong
+            id="repair-wear-percent"
+            style="color: var(--danger)"
+          ></strong>
+        </p>
+        <p>
+          Стоимость ремонта:
+          <strong id="repair-cost" style="color: var(--warning)"></strong> 🔩
+        </p>
         <div class="form-group">
-            <label>Подтвердите ремонт</label>
+          <label>Подтвердите ремонт</label>
         </div>
-        <button class="btn-primary" onclick="confirmRepair()">Подтвердить (Enter)</button>
+        <button class="btn-primary" onclick="confirmRepair()">
+          Подтвердить (Enter)
+        </button>
+      </div>
     </div>
-</div>
 
-<!-- Модальное окно ремонта всех станков -->
-<div id="repairAllModal" class="modal">
-    <div class="modal-content">
+    <!-- Модальное окно ремонта всех станков -->
+    <div id="repairAllModal" class="modal">
+      <div class="modal-content">
         <span class="close" onclick="closeRepairAllModal()">&times;</span>
         <h3>Ремонт всех станков</h3>
         <p>Станков требует ремонта: <strong id="repair-all-count">0</strong></p>
-        <p>Общая стоимость: <strong id="repair-all-cost" style="color:var(--warning)"></strong> 🔩</p>
+        <p>
+          Общая стоимость:
+          <strong id="repair-all-cost" style="color: var(--warning)"></strong>
+          🔩
+        </p>
         <div class="form-group">
-            <label>Подтвердите ремонт всех станков</label>
+          <label>Подтвердите ремонт всех станков</label>
         </div>
-        <button class="btn-primary" onclick="confirmRepairAll()">Подтвердить (Enter)</button>
+        <button class="btn-primary" onclick="confirmRepairAll()">
+          Подтвердить (Enter)
+        </button>
+      </div>
     </div>
-</div>
 
-<!-- Модальное окно изменения позиции -->
-<div id="positionModal" class="modal">
-    <div class="modal-content">
+    <!-- Модальное окно изменения позиции -->
+    <div id="positionModal" class="modal">
+      <div class="modal-content">
         <span class="close" onclick="closePositionModal()">&times;</span>
         <h3>Изменить позицию</h3>
         <p>Изделие: <strong id="position-item-name"></strong></p>
         <p>Текущая позиция: <strong id="position-current"></strong></p>
         <div class="form-group">
-            <label>Новая позиция (0 - начало):</label>
-            <input type="number" id="position-target" min="0" placeholder="0">
+          <label>Новая позиция (0 - начало):</label>
+          <input type="number" id="position-target" min="0" placeholder="0" />
         </div>
-        <button class="btn-primary" onclick="confirmPositionChange()">Переместить (Enter)</button>
+        <button class="btn-primary" onclick="confirmPositionChange()">
+          Переместить (Enter)
+        </button>
+      </div>
     </div>
-</div>
 
-<div id="toast-container"></div>
+    <div id="toast-container"></div>
 
-<script>
-    // --- ДАННЫЕ И ХРАНИЛИЩЕ ---
-    
-    let appData = {
-        products: [], 
-        inventory: {}, 
+    <script>
+      // --- ДАННЫЕ И ХРАНИЛИЩЕ ---
+
+      let appData = {
+        products: [],
+        inventory: {},
         productionLines: [],
         activeJobs: [],
         partsBalance: 2000,
         notificationsEnabled: true,
         isDarkTheme: true,
-        gridColumns: 3 // По умолчанию 3 колонки
-    };
+        gridColumns: 3, // По умолчанию 3 колонки
+      };
 
-    const DEFAULT_IMG = "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
-    const MACHINE_COST = 1000;
-    const WEAR_RATE_PER_HOUR = 1;
-    const REPAIR_COST_MULTIPLIER = 10;
+      const DEFAULT_IMG =
+        "https://via.placeholder.com/60/3498db/ffffff?text=Gear";
+      const MACHINE_COST = 1000;
+      const WEAR_RATE_PER_HOUR = 1;
+      const REPAIR_COST_MULTIPLIER = 10;
 
-    // Для модального окна позиции
-    let positionItemId = null;
-    let positionCurrentIndex = 0;
+      // Для модального окна позиции
+      let positionItemId = null;
+      let positionCurrentIndex = 0;
 
-    // --- УТИЛИТЫ ---
-    function formatTime(seconds) {
-        if(seconds < 0) seconds = 0;
+      // --- УТИЛИТЫ ---
+      function formatTime(seconds) {
+        if (seconds < 0) seconds = 0;
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
         const s = Math.floor(seconds % 60);
-        const pad = (num) => num.toString().padStart(2, '0');
+        const pad = (num) => num.toString().padStart(2, "0");
         return `${pad(h)}:${pad(m)}:${pad(s)}`;
-    }
+      }
 
-    function formatTimeToBreakdown(hours) {
+      function formatTimeToBreakdown(hours) {
         const days = Math.floor(hours / 24);
         const hrs = Math.floor(hours % 24);
         const mins = Math.floor((hours % 1) * 60);
-        const pad = (num) => num.toString().padStart(2, '0');
+        const pad = (num) => num.toString().padStart(2, "0");
         return `${pad(days)}д:${pad(hrs)}ч:${pad(mins)}м`;
-    }
+      }
 
-    function loadData() {
-        const stored = localStorage.getItem('factorySimData_v5');
+      function loadData() {
+        const stored = localStorage.getItem("factorySimData_v5");
         if (stored) {
-            appData = JSON.parse(stored);
-            // Если нет настройки колонок, ставим 3
-            if(!appData.gridColumns) appData.gridColumns = 3;
+          appData = JSON.parse(stored);
+          // Если нет настройки колонок, ставим 3
+          if (!appData.gridColumns) appData.gridColumns = 3;
         } else {
-            appData.products.push({
-                id: Date.now(),
-                name: "Болт М12",
-                desc: "Стандартный крепеж",
-                time: 5,
-                cost: 1,
-                img: DEFAULT_IMG
-            });
-            appData.inventory[appData.products[0].id] = 0;
-            appData.productionLines.push({
-                id: Date.now()+1, 
-                status: 'free',
-                durability: 100,
-                lastWorkTime: Date.now()
-            });
-            appData.gridColumns = 3;
+          appData.products.push({
+            id: Date.now(),
+            name: "Болт М12",
+            desc: "Стандартный крепеж",
+            time: 5,
+            cost: 1,
+            img: DEFAULT_IMG,
+          });
+          appData.inventory[appData.products[0].id] = 0;
+          appData.productionLines.push({
+            id: Date.now() + 1,
+            status: "free",
+            durability: 100,
+            lastWorkTime: Date.now(),
+          });
+          appData.gridColumns = 3;
         }
-        
+
         processOfflineProgress();
-        
+
         applyTheme();
         updatePartsDisplay();
         updateNotifButton();
         updateGridColumnsUI();
-    }
+      }
 
-    function saveData() {
-        localStorage.setItem('factorySimData_v5', JSON.stringify(appData));
+      function saveData() {
+        localStorage.setItem("factorySimData_v5", JSON.stringify(appData));
         updatePartsDisplay();
-    }
+      }
 
-    function applyTheme() {
-        if(appData.isDarkTheme) {
-            document.body.classList.remove('light-theme');
+      function applyTheme() {
+        if (appData.isDarkTheme) {
+          document.body.classList.remove("light-theme");
         } else {
-            document.body.classList.add('light-theme');
+          document.body.classList.add("light-theme");
         }
-    }
+      }
 
-    // --- СЕТКА ---
-    function changeGridColumns() {
-        const columns = parseInt(document.getElementById('grid-columns').value);
+      // --- СЕТКА ---
+      function changeGridColumns() {
+        const columns = parseInt(document.getElementById("grid-columns").value);
         appData.gridColumns = columns;
         saveData();
         updateGridColumnsUI();
         renderProduction();
-    }
+      }
 
-    function updateGridColumnsUI() {
-        const select = document.getElementById('grid-columns');
-        if(select) {
-            select.value = appData.gridColumns;
+      function updateGridColumnsUI() {
+        const select = document.getElementById("grid-columns");
+        if (select) {
+          select.value = appData.gridColumns;
         }
-        const grid = document.getElementById('lines-and-tasks-list');
-        if(grid) {
-            grid.className = `lines-grid columns-${appData.gridColumns}`;
+        const grid = document.getElementById("lines-and-tasks-list");
+        if (grid) {
+          grid.className = `lines-grid columns-${appData.gridColumns}`;
         }
-    }
+      }
 
-    // --- ЭКСПОРТ / ИМПОРТ ---
-    function exportData() {
+      // --- ЭКСПОРТ / ИМПОРТ ---
+      function exportData() {
         const dataStr = JSON.stringify(appData, null, 2);
-        const blob = new Blob([dataStr], {type: "application/json"});
+        const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `factory_save_${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `factory_save_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showNotification("База данных скачана!", "success");
-    }
+      }
 
-    function importData(input) {
+      function importData(input) {
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const json = JSON.parse(e.target.result);
-                if(json.products && json.inventory) {
-                    appData = json;
-                    if(!appData.gridColumns) appData.gridColumns = 3;
-                    saveData();
-                    showNotification("База данных загружена!", "success");
-                    const currentSection = document.querySelector('.section.active').id;
-                    showSection(currentSection);
-                    if(currentSection === 'production') renderProduction();
-                } else { throw new Error("Неверный формат"); }
-            } catch (err) {
-                showNotification("Ошибка импорта", "error");
+        reader.onload = function (e) {
+          try {
+            const json = JSON.parse(e.target.result);
+            if (json.products && json.inventory) {
+              appData = json;
+              if (!appData.gridColumns) appData.gridColumns = 3;
+              saveData();
+              showNotification("База данных загружена!", "success");
+              const currentSection =
+                document.querySelector(".section.active").id;
+              showSection(currentSection);
+              if (currentSection === "production") renderProduction();
+            } else {
+              throw new Error("Неверный формат");
             }
-            input.value = '';
+          } catch (err) {
+            showNotification("Ошибка импорта", "error");
+          }
+          input.value = "";
         };
         reader.readAsText(file);
-    }
+      }
 
-    // --- УВЕДОМЛЕНИЯ И ТЕМА ---
-    function toggleNotifications() {
+      // --- УВЕДОМЛЕНИЯ И ТЕМА ---
+      function toggleNotifications() {
         appData.notificationsEnabled = !appData.notificationsEnabled;
         saveData();
         updateNotifButton();
-        showNotification(appData.notificationsEnabled ? "Уведомления включены" : "Уведомления выключены", "success");
-    }
-    function updateNotifButton() {
-        const btn = document.getElementById('btn-notif');
+        showNotification(
+          appData.notificationsEnabled
+            ? "Уведомления включены"
+            : "Уведомления выключены",
+          "success",
+        );
+      }
+      function updateNotifButton() {
+        const btn = document.getElementById("btn-notif");
         btn.textContent = appData.notificationsEnabled ? "🔔" : "🔕";
         btn.style.opacity = appData.notificationsEnabled ? "1" : "0.5";
-    }
-    function showNotification(msg, type = "info") {
+      }
+      function showNotification(msg, type = "info") {
         if (!appData.notificationsEnabled) return;
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.textContent = msg;
         container.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.classList.add("show"), 10);
         setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 500);
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 500);
         }, 3000);
-    }
-    function toggleTheme() {
+      }
+      function toggleTheme() {
         appData.isDarkTheme = !appData.isDarkTheme;
         applyTheme();
         saveData();
-    }
+      }
 
-    // --- НАВИГАЦИЯ ---
-    function showSection(sectionId) {
-        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('nav button').forEach(el => {
-            if(!el.id.includes('notif') && !el.classList.contains('nav-action-btn')) 
-                el.classList.remove('active');
+      // --- НАВИГАЦИЯ ---
+      function showSection(sectionId) {
+        document
+          .querySelectorAll(".section")
+          .forEach((el) => el.classList.remove("active"));
+        document.querySelectorAll("nav button").forEach((el) => {
+          if (
+            !el.id.includes("notif") &&
+            !el.classList.contains("nav-action-btn")
+          )
+            el.classList.remove("active");
         });
-        document.getElementById(sectionId).classList.add('active');
-        const navBtn = document.getElementById('nav-' + sectionId);
-        if(navBtn) navBtn.classList.add('active');
+        document.getElementById(sectionId).classList.add("active");
+        const navBtn = document.getElementById("nav-" + sectionId);
+        if (navBtn) navBtn.classList.add("active");
 
-        if(sectionId === 'editor') { resetForm(); renderEditor(); }
-        if(sectionId === 'production') renderProduction();
-        if(sectionId === 'warehouse') renderWarehouse();
-    }
+        if (sectionId === "editor") {
+          resetForm();
+          renderEditor();
+        }
+        if (sectionId === "production") renderProduction();
+        if (sectionId === "warehouse") renderWarehouse();
+      }
 
-    // --- ЗАПЧАСТИ ---
-    function openPartsModal() {
-        document.getElementById('modal-parts-count').textContent = appData.partsBalance;
-        document.getElementById('partsModal').style.display = "block";
-        document.getElementById('parts-change-val').value = "";
-        document.getElementById('parts-change-val').focus();
-    }
-    function closePartsModal() { document.getElementById('partsModal').style.display = "none"; }
-    function applyPartsChange() {
-        const val = parseInt(document.getElementById('parts-change-val').value);
-        if(isNaN(val)) return;
+      // --- ЗАПЧАСТИ ---
+      function openPartsModal() {
+        document.getElementById("modal-parts-count").textContent =
+          appData.partsBalance;
+        document.getElementById("partsModal").style.display = "block";
+        document.getElementById("parts-change-val").value = "";
+        document.getElementById("parts-change-val").focus();
+      }
+      function closePartsModal() {
+        document.getElementById("partsModal").style.display = "none";
+      }
+      function applyPartsChange() {
+        const val = parseInt(document.getElementById("parts-change-val").value);
+        if (isNaN(val)) return;
         appData.partsBalance += val;
         saveData();
         closePartsModal();
-        showNotification(`Баланс изменен на ${val > 0 ? '+' : ''}${val}`, "success");
-    }
-    function updatePartsDisplay() { document.getElementById('nav-parts-count').textContent = appData.partsBalance; }
-    window.onclick = function(event) {
-        if (event.target == document.getElementById('partsModal')) closePartsModal();
-        if (event.target == document.getElementById('repairModal')) closeRepairModal();
-        if (event.target == document.getElementById('repairAllModal')) closeRepairAllModal();
-        if (event.target == document.getElementById('positionModal')) closePositionModal();
-    }
+        showNotification(
+          `Баланс изменен на ${val > 0 ? "+" : ""}${val}`,
+          "success",
+        );
+      }
+      function updatePartsDisplay() {
+        document.getElementById("nav-parts-count").textContent =
+          appData.partsBalance;
+      }
+      window.onclick = function (event) {
+        if (event.target == document.getElementById("partsModal"))
+          closePartsModal();
+        if (event.target == document.getElementById("repairModal"))
+          closeRepairModal();
+        if (event.target == document.getElementById("repairAllModal"))
+          closeRepairAllModal();
+        if (event.target == document.getElementById("positionModal"))
+          closePositionModal();
+      };
 
-    // --- РЕМОНТ СТАНКОВ ---
-    let repairLineId = null;
+      // --- РЕМОНТ СТАНКОВ ---
+      let repairLineId = null;
 
-    function openRepairModal(lineId) {
-        const line = appData.productionLines.find(l => l.id === lineId);
-        if(!line) return;
+      function openRepairModal(lineId) {
+        const line = appData.productionLines.find((l) => l.id === lineId);
+        if (!line) return;
 
         repairLineId = lineId;
         const wear = (100 - line.durability).toFixed(2);
-        const cost = Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER);
+        const cost = Math.ceil(
+          (100 - line.durability) * REPAIR_COST_MULTIPLIER,
+        );
 
-        document.getElementById('repair-line-id').textContent = line.id.toString().slice(-4);
-        document.getElementById('repair-wear-percent').textContent = `${wear}%`;
-        document.getElementById('repair-cost').textContent = cost;
-        document.getElementById('repairModal').style.display = "block";
-    }
+        document.getElementById("repair-line-id").textContent = line.id
+          .toString()
+          .slice(-4);
+        document.getElementById("repair-wear-percent").textContent = `${wear}%`;
+        document.getElementById("repair-cost").textContent = cost;
+        document.getElementById("repairModal").style.display = "block";
+      }
 
-    function closeRepairModal() {
-        document.getElementById('repairModal').style.display = "none";
+      function closeRepairModal() {
+        document.getElementById("repairModal").style.display = "none";
         repairLineId = null;
-    }
+      }
 
-    function confirmRepair() {
-        if(!repairLineId) return;
-        
-        const line = appData.productionLines.find(l => l.id === repairLineId);
-        if(!line) { closeRepairModal(); return; }
+      function confirmRepair() {
+        if (!repairLineId) return;
 
-        const cost = Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER);
+        const line = appData.productionLines.find((l) => l.id === repairLineId);
+        if (!line) {
+          closeRepairModal();
+          return;
+        }
 
-        if(appData.partsBalance < cost) {
-            showNotification("Недостаточно запчастей для ремонта!", "error");
-            return;
+        const cost = Math.ceil(
+          (100 - line.durability) * REPAIR_COST_MULTIPLIER,
+        );
+
+        if (appData.partsBalance < cost) {
+          showNotification("Недостаточно запчастей для ремонта!", "error");
+          return;
         }
 
         appData.partsBalance -= cost;
         line.durability = 100;
         line.lastWorkTime = Date.now();
-        
+
         saveData();
         closeRepairModal();
         renderProduction();
         showNotification(`Станок отремонтирован! -${cost} 🔩`, "success");
-    }
+      }
 
-    // --- РЕМОНТ ВСЕХ СТАНКОВ ---
-    function openRepairAllModal() {
-        const damagedLines = appData.productionLines.filter(l => l.durability < 100);
-        
-        if(damagedLines.length === 0) {
-            showNotification("Все станки исправны!", "success");
-            return;
+      // --- РЕМОНТ ВСЕХ СТАНКОВ ---
+      function openRepairAllModal() {
+        const damagedLines = appData.productionLines.filter(
+          (l) => l.durability < 100,
+        );
+
+        if (damagedLines.length === 0) {
+          showNotification("Все станки исправны!", "success");
+          return;
         }
 
         const totalCost = damagedLines.reduce((sum, line) => {
-            return sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER);
+          return (
+            sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER)
+          );
         }, 0);
 
-        document.getElementById('repair-all-count').textContent = damagedLines.length;
-        document.getElementById('repair-all-cost').textContent = totalCost;
-        document.getElementById('repairAllModal').style.display = "block";
-    }
+        document.getElementById("repair-all-count").textContent =
+          damagedLines.length;
+        document.getElementById("repair-all-cost").textContent = totalCost;
+        document.getElementById("repairAllModal").style.display = "block";
+      }
 
-    function closeRepairAllModal() {
-        document.getElementById('repairAllModal').style.display = "none";
-    }
+      function closeRepairAllModal() {
+        document.getElementById("repairAllModal").style.display = "none";
+      }
 
-    function confirmRepairAll() {
-        const damagedLines = appData.productionLines.filter(l => l.durability < 100);
-        
-        if(damagedLines.length === 0) {
-            closeRepairAllModal();
-            return;
+      function confirmRepairAll() {
+        const damagedLines = appData.productionLines.filter(
+          (l) => l.durability < 100,
+        );
+
+        if (damagedLines.length === 0) {
+          closeRepairAllModal();
+          return;
         }
 
         const totalCost = damagedLines.reduce((sum, line) => {
-            return sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER);
+          return (
+            sum + Math.ceil((100 - line.durability) * REPAIR_COST_MULTIPLIER)
+          );
         }, 0);
 
-        if(appData.partsBalance < totalCost) {
-            showNotification(`Недостаточно запчастей! Нужно ${totalCost}`, "error");
-            return;
+        if (appData.partsBalance < totalCost) {
+          showNotification(
+            `Недостаточно запчастей! Нужно ${totalCost}`,
+            "error",
+          );
+          return;
         }
 
         appData.partsBalance -= totalCost;
-        
-        damagedLines.forEach(line => {
-            line.durability = 100;
-            line.lastWorkTime = Date.now();
+
+        damagedLines.forEach((line) => {
+          line.durability = 100;
+          line.lastWorkTime = Date.now();
         });
-        
+
         saveData();
         closeRepairAllModal();
         renderProduction();
-        showNotification(`Все станки отремонтированы! -${totalCost} 🔩`, "success");
-    }
+        showNotification(
+          `Все станки отремонтированы! -${totalCost} 🔩`,
+          "success",
+        );
+      }
 
-    // --- ИЗМЕНЕНИЕ ПОЗИЦИИ ---
-    function openPositionModal(productId, index) {
-        const product = appData.products.find(p => p.id === productId);
-        if(!product) return;
+      // --- ИЗМЕНЕНИЕ ПОЗИЦИИ ---
+      function openPositionModal(productId, index) {
+        const product = appData.products.find((p) => p.id === productId);
+        if (!product) return;
 
         positionItemId = productId;
         positionCurrentIndex = index;
 
-        document.getElementById('position-item-name').textContent = product.name;
-        document.getElementById('position-current').textContent = index + 1;
-        document.getElementById('position-target').value = '';
-        document.getElementById('positionModal').style.display = "block";
-        document.getElementById('position-target').focus();
-    }
+        document.getElementById("position-item-name").textContent =
+          product.name;
+        document.getElementById("position-current").textContent = index + 1;
+        document.getElementById("position-target").value = "";
+        document.getElementById("positionModal").style.display = "block";
+        document.getElementById("position-target").focus();
+      }
 
-    function closePositionModal() {
-        document.getElementById('positionModal').style.display = "none";
+      function closePositionModal() {
+        document.getElementById("positionModal").style.display = "none";
         positionItemId = null;
-    }
+      }
 
-    function confirmPositionChange() {
-        if(positionItemId === null) return;
+      function confirmPositionChange() {
+        if (positionItemId === null) return;
 
-        const targetIndex = parseInt(document.getElementById('position-target').value);
-        if(isNaN(targetIndex) || targetIndex < 0) {
-            showNotification("Введите корректный индекс (0 или больше)", "error");
-            return;
+        const targetIndex = parseInt(
+          document.getElementById("position-target").value,
+        );
+        if (isNaN(targetIndex) || targetIndex < 0) {
+          showNotification("Введите корректный индекс (0 или больше)", "error");
+          return;
         }
 
-        const currentIndex = appData.products.findIndex(p => p.id === positionItemId);
-        if(currentIndex === -1) {
-            closePositionModal();
-            return;
+        const currentIndex = appData.products.findIndex(
+          (p) => p.id === positionItemId,
+        );
+        if (currentIndex === -1) {
+          closePositionModal();
+          return;
         }
 
         // Ограничиваем максимальный индекс
@@ -979,106 +1251,128 @@
         saveData();
         closePositionModal();
         renderEditor();
-        showNotification(`Перемещено на позицию ${safeTargetIndex + 1}`, "success");
-    }
+        showNotification(
+          `Перемещено на позицию ${safeTargetIndex + 1}`,
+          "success",
+        );
+      }
 
-    // --- РЕДАКТОР ---
-    let editModeId = null;
-    function saveProduct() {
-        const idField = document.getElementById('prod-id');
-        const name = document.getElementById('prod-name').value;
-        const desc = document.getElementById('prod-desc').value;
-        const time = parseInt(document.getElementById('prod-time').value);
-        const cost = parseInt(document.getElementById('prod-cost').value);
-        let img = document.getElementById('prod-img').value;
-        if(!img) img = DEFAULT_IMG;
+      // --- РЕДАКТОР ---
+      let editModeId = null;
+      function saveProduct() {
+        const idField = document.getElementById("prod-id");
+        const name = document.getElementById("prod-name").value;
+        const desc = document.getElementById("prod-desc").value;
+        const time = parseInt(document.getElementById("prod-time").value);
+        const cost = parseInt(document.getElementById("prod-cost").value);
+        let img = document.getElementById("prod-img").value;
+        if (!img) img = DEFAULT_IMG;
 
-        if(!name || !time) { showNotification("Заполните поля!", "error"); return; }
+        if (!name || !time) {
+          showNotification("Заполните поля!", "error");
+          return;
+        }
 
-        if(editModeId) {
-            const index = appData.products.findIndex(p => p.id == editModeId);
-            if(index !== -1) {
-                appData.products[index] = { ...appData.products[index], name, desc, time, cost, img };
-                showNotification("Изделие обновлено", "success");
-            }
+        if (editModeId) {
+          const index = appData.products.findIndex((p) => p.id == editModeId);
+          if (index !== -1) {
+            appData.products[index] = {
+              ...appData.products[index],
+              name,
+              desc,
+              time,
+              cost,
+              img,
+            };
+            showNotification("Изделие обновлено", "success");
+          }
         } else {
-            const newProduct = { id: Date.now(), name, desc, time, cost, img };
-            appData.products.push(newProduct);
-            appData.inventory[newProduct.id] = 0;
-            showNotification("Изделие добавлено", "success");
+          const newProduct = { id: Date.now(), name, desc, time, cost, img };
+          appData.products.push(newProduct);
+          appData.inventory[newProduct.id] = 0;
+          showNotification("Изделие добавлено", "success");
         }
         saveData();
         resetForm();
         renderEditor();
-    }
+      }
 
-    function editProduct(id) {
-        const p = appData.products.find(prod => prod.id === id);
-        if(!p) return;
-        document.getElementById('prod-id').value = p.id;
-        document.getElementById('prod-name').value = p.name;
-        document.getElementById('prod-desc').value = p.desc;
-        document.getElementById('prod-time').value = p.time;
-        document.getElementById('prod-cost').value = p.cost;
-        document.getElementById('prod-img').value = (p.img === DEFAULT_IMG) ? '' : p.img;
+      function editProduct(id) {
+        const p = appData.products.find((prod) => prod.id === id);
+        if (!p) return;
+        document.getElementById("prod-id").value = p.id;
+        document.getElementById("prod-name").value = p.name;
+        document.getElementById("prod-desc").value = p.desc;
+        document.getElementById("prod-time").value = p.time;
+        document.getElementById("prod-cost").value = p.cost;
+        document.getElementById("prod-img").value =
+          p.img === DEFAULT_IMG ? "" : p.img;
         editModeId = id;
-        const btn = document.getElementById('btn-save-prod');
+        const btn = document.getElementById("btn-save-prod");
         btn.textContent = "Сохранить изменения";
         btn.style.backgroundColor = "var(--warning)";
-        document.querySelector('#editor').scrollIntoView({behavior: 'smooth'});
-    }
+        document
+          .querySelector("#editor")
+          .scrollIntoView({ behavior: "smooth" });
+      }
 
-    function deleteProduct(id) {
-        if(confirm("Удалить?")) {
-            appData.products = appData.products.filter(p => p.id !== id);
-            delete appData.inventory[id];
-            saveData();
-            renderEditor();
+      function deleteProduct(id) {
+        if (confirm("Удалить?")) {
+          appData.products = appData.products.filter((p) => p.id !== id);
+          delete appData.inventory[id];
+          saveData();
+          renderEditor();
         }
-    }
+      }
 
-    function moveProduct(index, direction) {
+      function moveProduct(index, direction) {
         const newIndex = index + direction;
-        
-        if(newIndex < 0 || newIndex >= appData.products.length) {
-            return;
+
+        if (newIndex < 0 || newIndex >= appData.products.length) {
+          return;
         }
-        
-        [appData.products[index], appData.products[newIndex]] = 
-        [appData.products[newIndex], appData.products[index]];
-        
+
+        [appData.products[index], appData.products[newIndex]] = [
+          appData.products[newIndex],
+          appData.products[index],
+        ];
+
         saveData();
         renderEditor();
-        showNotification(direction === -1 ? "Поднято вверх ⬆️" : "Опущено вниз ⬇️", "success");
-    }
+        showNotification(
+          direction === -1 ? "Поднято вверх ⬆️" : "Опущено вниз ⬇️",
+          "success",
+        );
+      }
 
-    function resetForm() {
-        document.getElementById('prod-id').value = '';
-        document.getElementById('prod-name').value = '';
-        document.getElementById('prod-desc').value = '';
-        document.getElementById('prod-time').value = '10';
-        document.getElementById('prod-cost').value = '10';
-        document.getElementById('prod-img').value = '';
+      function resetForm() {
+        document.getElementById("prod-id").value = "";
+        document.getElementById("prod-name").value = "";
+        document.getElementById("prod-desc").value = "";
+        document.getElementById("prod-time").value = "10";
+        document.getElementById("prod-cost").value = "10";
+        document.getElementById("prod-img").value = "";
         editModeId = null;
-        const btn = document.getElementById('btn-save-prod');
+        const btn = document.getElementById("btn-save-prod");
         btn.textContent = "Добавить изделие";
         btn.style.backgroundColor = "var(--primary)";
-    }
+      }
 
-    function renderEditor() {
-        const list = document.getElementById('products-list');
-        list.innerHTML = '';
-        
-        if(appData.products.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:var(--text-muted)">Нет изделий. Добавьте первое изделие!</p>';
-            return;
+      function renderEditor() {
+        const list = document.getElementById("products-list");
+        list.innerHTML = "";
+
+        if (appData.products.length === 0) {
+          list.innerHTML =
+            '<p style="text-align:center; color:var(--text-muted)">Нет изделий. Добавьте первое изделие!</p>';
+          return;
         }
-        
+
         appData.products.forEach((p, index) => {
-            const isFirst = index === 0;
-            const isLast = index === appData.products.length - 1;
-            
-            list.innerHTML += `
+          const isFirst = index === 0;
+          const isLast = index === appData.products.length - 1;
+
+          list.innerHTML += `
                 <div class="item-card">
                     <img src="${p.img}" class="item-img">
                     <div class="item-info">
@@ -1087,8 +1381,8 @@
                         <span class="item-meta">⏱ ${formatTime(p.time)} / шт | 🔩 ${p.cost} запч.</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:3px;">
-                        <button class="btn-move" onclick="moveProduct(${index}, -1)" ${isFirst ? 'disabled' : ''} title="Вверх">⬆️</button>
-                        <button class="btn-move" onclick="moveProduct(${index}, 1)" ${isLast ? 'disabled' : ''} title="Вниз">⬇️</button>
+                        <button class="btn-move" onclick="moveProduct(${index}, -1)" ${isFirst ? "disabled" : ""} title="Вверх">⬆️</button>
+                        <button class="btn-move" onclick="moveProduct(${index}, 1)" ${isLast ? "disabled" : ""} title="Вниз">⬇️</button>
                         <button class="btn-position" onclick="openPositionModal(${p.id}, ${index})" title="Позиция">📍</button>
                         <button class="btn-edit" onclick="editProduct(${p.id})">✏️</button>
                         <button class="btn-danger" onclick="deleteProduct(${p.id})">🗑</button>
@@ -1096,143 +1390,161 @@
                 </div>
             `;
         });
-    }
+      }
 
-    // --- ПРОИЗВОДСТВО (ЛИНИИ И ЗАДАЧИ) ---
-    let gameLoopInterval = null;
+      // --- ПРОИЗВОДСТВО (ЛИНИИ И ЗАДАЧИ) ---
+      let gameLoopInterval = null;
 
-    function addProductionLine() {
-        if(appData.partsBalance < MACHINE_COST) {
-            showNotification(`Недостаточно запчастей! Нужно ${MACHINE_COST}`, "error");
-            return;
+      function addProductionLine() {
+        if (appData.partsBalance < MACHINE_COST) {
+          showNotification(
+            `Недостаточно запчастей! Нужно ${MACHINE_COST}`,
+            "error",
+          );
+          return;
         }
 
         appData.partsBalance -= MACHINE_COST;
-        appData.productionLines.push({ 
-            id: Date.now(), 
-            status: 'free',
-            durability: 100,
-            lastWorkTime: Date.now()
+        appData.productionLines.push({
+          id: Date.now(),
+          status: "free",
+          durability: 100,
+          lastWorkTime: Date.now(),
         });
         saveData();
         renderProduction();
         showNotification(`Станок куплен! -${MACHINE_COST} 🔩`, "success");
-    }
+      }
 
-    function removeProductionLine(id) {
-        const line = appData.productionLines.find(l => l.id === id);
-        if(line && line.status === 'busy') {
-            showNotification("Нельзя удалить занятый станок!", "error");
-            return;
+      function removeProductionLine(id) {
+        const line = appData.productionLines.find((l) => l.id === id);
+        if (line && line.status === "busy") {
+          showNotification("Нельзя удалить занятый станок!", "error");
+          return;
         }
-        if(confirm("Удалить этот станок?")) {
-            appData.productionLines = appData.productionLines.filter(l => l.id !== id);
-            saveData();
-            renderProduction();
+        if (confirm("Удалить этот станок?")) {
+          appData.productionLines = appData.productionLines.filter(
+            (l) => l.id !== id,
+          );
+          saveData();
+          renderProduction();
         }
-    }
+      }
 
-    function cancelJob(lineId) {
-        const jobIndex = appData.activeJobs.findIndex(j => j.lineId === lineId);
-        if(jobIndex === -1) return;
+      function cancelJob(lineId) {
+        const jobIndex = appData.activeJobs.findIndex(
+          (j) => j.lineId === lineId,
+        );
+        if (jobIndex === -1) return;
 
         const job = appData.activeJobs[jobIndex];
-        const product = appData.products.find(p => p.id === job.productId);
-        
+        const product = appData.products.find((p) => p.id === job.productId);
+
         const completedQty = job.currentItemIndex - 1;
         const remainingQty = job.totalQty - completedQty;
         const refundAmount = remainingQty * product.cost;
-        
+
         if (refundAmount > 0) {
-            appData.partsBalance += refundAmount;
-            showNotification(`Производство отменено. Возвращено ${refundAmount} запчастей.`, "success");
+          appData.partsBalance += refundAmount;
+          showNotification(
+            `Производство отменено. Возвращено ${refundAmount} запчастей.`,
+            "success",
+          );
         } else {
-            showNotification("Производство отменено.", "warning");
+          showNotification("Производство отменено.", "warning");
         }
 
-        const line = appData.productionLines.find(l => l.id === lineId);
-        if(line) line.status = 'free';
+        const line = appData.productionLines.find((l) => l.id === lineId);
+        if (line) line.status = "free";
 
         appData.activeJobs.splice(jobIndex, 1);
-        
+
         saveData();
         renderProduction();
-    }
+      }
 
-    function startProduction(productId, qty) {
-        const product = appData.products.find(p => p.id === productId);
-        if(!product) return;
+      function startProduction(productId, qty) {
+        const product = appData.products.find((p) => p.id === productId);
+        if (!product) return;
 
-        const freeLine = appData.productionLines.find(l => l.status === 'free');
-        if(!freeLine) {
-            showNotification("Нет свободных станков!", "error");
-            return;
+        const freeLine = appData.productionLines.find(
+          (l) => l.status === "free",
+        );
+        if (!freeLine) {
+          showNotification("Нет свободных станков!", "error");
+          return;
         }
 
-        if(freeLine.durability <= 0) {
-            showNotification("Станок сломан! Требуется ремонт.", "error");
-            return;
+        if (freeLine.durability <= 0) {
+          showNotification("Станок сломан! Требуется ремонт.", "error");
+          return;
         }
 
         const totalCost = product.cost * qty;
-        if(appData.partsBalance < totalCost) {
-            showNotification(`Недостаточно запчастей! Нужно: ${totalCost}`, "error");
-            return;
+        if (appData.partsBalance < totalCost) {
+          showNotification(
+            `Недостаточно запчастей! Нужно: ${totalCost}`,
+            "error",
+          );
+          return;
         }
 
         appData.partsBalance -= totalCost;
-        freeLine.status = 'busy';
+        freeLine.status = "busy";
         freeLine.lastWorkTime = Date.now();
 
-        const itemDuration = product.time; 
-        const totalDuration = itemDuration * qty; 
+        const itemDuration = product.time;
+        const totalDuration = itemDuration * qty;
 
         const job = {
-            id: Date.now() + Math.random(),
-            lineId: freeLine.id,
-            productId: productId,
-            totalQty: qty,
-            currentItemIndex: 1, 
-            itemStartTime: Date.now(),
-            itemDuration: itemDuration,
-            totalRemainingTime: totalDuration
+          id: Date.now() + Math.random(),
+          lineId: freeLine.id,
+          productId: productId,
+          totalQty: qty,
+          currentItemIndex: 1,
+          itemStartTime: Date.now(),
+          itemDuration: itemDuration,
+          totalRemainingTime: totalDuration,
         };
 
         appData.activeJobs.push(job);
         saveData();
         renderProduction();
         showNotification(`Запущено на станке #${freeLine.id}`, "success");
-    }
+      }
 
-    function renderProduction() {
+      function renderProduction() {
         updateGridColumnsUI();
-        const list = document.getElementById('lines-and-tasks-list');
-        list.innerHTML = '';
+        const list = document.getElementById("lines-and-tasks-list");
+        list.innerHTML = "";
 
-        if(appData.productionLines.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1;">Нет станков. Купите станок, чтобы начать работу.</p>';
+        if (appData.productionLines.length === 0) {
+          list.innerHTML =
+            '<p style="text-align:center; color:var(--text-muted); grid-column: 1/-1;">Нет станков. Купите станок, чтобы начать работу.</p>';
         } else {
-            appData.productionLines.forEach(line => {
-                const job = appData.activeJobs.find(j => j.lineId === line.id);
-                
-                let batteryClass = '';
-                if(line.durability <= 20) batteryClass = 'low';
-                else if(line.durability <= 50) batteryClass = 'medium';
+          appData.productionLines.forEach((line) => {
+            const job = appData.activeJobs.find((j) => j.lineId === line.id);
 
-                const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
-                const timeToBreakdown = formatTimeToBreakdown(hoursToBreakdown);
+            let batteryClass = "";
+            if (line.durability <= 20) batteryClass = "low";
+            else if (line.durability <= 50) batteryClass = "medium";
 
-                if (job) {
-                    const product = appData.products.find(p => p.id === job.productId);
-                    const now = Date.now();
-                    const elapsedItem = (now - job.itemStartTime) / 1000;
-                    
-                    let itemProgress = (elapsedItem / job.itemDuration) * 100;
-                    if(itemProgress > 100) itemProgress = 100;
+            const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
+            const timeToBreakdown = formatTimeToBreakdown(hoursToBreakdown);
 
-                    const itemCountText = `${job.currentItemIndex} из ${job.totalQty}`;
+            if (job) {
+              const product = appData.products.find(
+                (p) => p.id === job.productId,
+              );
+              const now = Date.now();
+              const elapsedItem = (now - job.itemStartTime) / 1000;
 
-                    list.innerHTML += `
+              let itemProgress = (elapsedItem / job.itemDuration) * 100;
+              if (itemProgress > 100) itemProgress = 100;
+
+              const itemCountText = `${job.currentItemIndex} из ${job.totalQty}`;
+
+              list.innerHTML += `
                         <div class="line-card busy" id="line-card-${line.id}">
                             <div class="line-controls">
                                 <button class="line-btn btn-repair-line" onclick="openRepairModal(${line.id})" title="Ремонт">🔧</button>
@@ -1264,8 +1576,8 @@
                             </div>
                         </div>
                     `;
-                } else {
-                    list.innerHTML += `
+            } else {
+              list.innerHTML += `
                         <div class="line-card" id="line-card-${line.id}">
                             <div class="line-controls">
                                 <button class="line-btn btn-repair-line" onclick="openRepairModal(${line.id})" title="Ремонт">🔧</button>
@@ -1285,19 +1597,22 @@
                             </div>
                         </div>
                     `;
-                }
-            });
+            }
+          });
         }
 
-        const startList = document.getElementById('start-tasks-list');
-        startList.innerHTML = '';
-        const freeLinesCount = appData.productionLines.filter(l => l.status === 'free' && l.durability > 0).length;
-        
-        if(freeLinesCount === 0) {
-            startList.innerHTML = '<p style="color:var(--danger)">Все станки заняты или требуют ремонта!</p>';
+        const startList = document.getElementById("start-tasks-list");
+        startList.innerHTML = "";
+        const freeLinesCount = appData.productionLines.filter(
+          (l) => l.status === "free" && l.durability > 0,
+        ).length;
+
+        if (freeLinesCount === 0) {
+          startList.innerHTML =
+            '<p style="color:var(--danger)">Все станки заняты или требуют ремонта!</p>';
         } else {
-            appData.products.forEach(p => {
-                startList.innerHTML += `
+          appData.products.forEach((p) => {
+            startList.innerHTML += `
                     <div class="item-card">
                         <img src="${p.img}" class="item-img">
                         <div class="item-info">
@@ -1315,215 +1630,246 @@
                         </div>
                     </div>
                 `;
-            });
+          });
         }
 
-        if(!gameLoopInterval) {
-            gameLoopInterval = setInterval(gameLoop, 200);
+        if (!gameLoopInterval) {
+          gameLoopInterval = setInterval(gameLoop, 200);
         }
-    }
+      }
 
-    function changeQty(btn, delta) {
-        const input = btn.parentElement.querySelector('input');
+      function changeQty(btn, delta) {
+        const input = btn.parentElement.querySelector("input");
         let val = parseInt(input.value) + delta;
-        if(val < 1) val = 1;
+        if (val < 1) val = 1;
         input.value = val;
-    }
+      }
 
-    function gameLoop() {
-        if(appData.activeJobs.length === 0) return;
+      function gameLoop() {
+        if (appData.activeJobs.length === 0) return;
 
         let needsRender = false;
         let needsSave = false;
         const now = Date.now();
 
         for (let i = appData.activeJobs.length - 1; i >= 0; i--) {
-            const job = appData.activeJobs[i];
-            const elapsedItem = (now - job.itemStartTime) / 1000;
+          const job = appData.activeJobs[i];
+          const elapsedItem = (now - job.itemStartTime) / 1000;
 
-            if (elapsedItem >= job.itemDuration) {
-                if (!appData.inventory[job.productId]) appData.inventory[job.productId] = 0;
-                appData.inventory[job.productId]++;
-                
-                if (job.currentItemIndex < job.totalQty) {
-                    job.currentItemIndex++;
-                    job.itemStartTime = now;
-                    const remainingItems = job.totalQty - job.currentItemIndex + 1;
-                    job.totalRemainingTime = remainingItems * job.itemDuration;
-                } else {
-                    const line = appData.productionLines.find(l => l.id === job.lineId);
-                    if(line) line.status = 'free';
+          if (elapsedItem >= job.itemDuration) {
+            if (!appData.inventory[job.productId])
+              appData.inventory[job.productId] = 0;
+            appData.inventory[job.productId]++;
 
-                    appData.activeJobs.splice(i, 1);
-                    needsSave = true;
-                    needsRender = true;
-                    showNotification(`Готово: ${appData.products.find(p=>p.id===job.productId).name}`, "success");
-                    continue; 
-                }
+            if (job.currentItemIndex < job.totalQty) {
+              job.currentItemIndex++;
+              job.itemStartTime = now;
+              const remainingItems = job.totalQty - job.currentItemIndex + 1;
+              job.totalRemainingTime = remainingItems * job.itemDuration;
             } else {
-                const remainingItems = job.totalQty - job.currentItemIndex + 1;
-                const currentRemaining = job.itemDuration - elapsedItem;
-                job.totalRemainingTime = (remainingItems - 1) * job.itemDuration + currentRemaining;
+              const line = appData.productionLines.find(
+                (l) => l.id === job.lineId,
+              );
+              if (line) line.status = "free";
+
+              appData.activeJobs.splice(i, 1);
+              needsSave = true;
+              needsRender = true;
+              showNotification(
+                `Готово: ${appData.products.find((p) => p.id === job.productId).name}`,
+                "success",
+              );
+              continue;
             }
+          } else {
+            const remainingItems = job.totalQty - job.currentItemIndex + 1;
+            const currentRemaining = job.itemDuration - elapsedItem;
+            job.totalRemainingTime =
+              (remainingItems - 1) * job.itemDuration + currentRemaining;
+          }
         }
 
-        if(needsSave) saveData();
-        if(needsRender) renderProduction();
+        if (needsSave) saveData();
+        if (needsRender) renderProduction();
         else {
-            updateProgressBarsVisuals();
-            updateDurabilityVisuals();
+          updateProgressBarsVisuals();
+          updateDurabilityVisuals();
         }
-    }
+      }
 
-    function updateDurabilityVisuals() {
+      function updateDurabilityVisuals() {
         const now = Date.now();
         let needsSave = false;
 
-        appData.productionLines.forEach(line => {
-            if(line.status === 'busy') {
-                const workTimeHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
-                const wear = workTimeHours * WEAR_RATE_PER_HOUR;
-                
-                const newDurability = Math.max(0, 100 - wear);
-                
-                if(Math.abs(newDurability - line.durability) > 0.01) {
-                    line.durability = newDurability;
-                    needsSave = true;
-                }
+        appData.productionLines.forEach((line) => {
+          if (line.status === "busy") {
+            const workTimeHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
+            const wear = workTimeHours * WEAR_RATE_PER_HOUR;
 
-                const card = document.getElementById(`line-card-${line.id}`);
-                if(card) {
-                    const batteryLevel = card.querySelector('.battery-level');
-                    const batteryText = card.querySelector('.durability-container span');
-                    const batteryTooltip = card.querySelector('.battery-tooltip');
-                    
-                    if(batteryLevel && batteryText) {
-                        batteryLevel.style.width = `${line.durability}%`;
-                        batteryText.textContent = `${line.durability.toFixed(0)}%`;
-                        
-                        batteryLevel.classList.remove('low', 'medium');
-                        if(line.durability <= 20) batteryLevel.classList.add('low');
-                        else if(line.durability <= 50) batteryLevel.classList.add('medium');
+            const newDurability = Math.max(0, 100 - wear);
 
-                        if(batteryTooltip) {
-                            const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
-                            batteryTooltip.textContent = `До поломки: ${formatTimeToBreakdown(hoursToBreakdown)}`;
-                        }
-
-                        if(line.durability < 10 && line.durability > 5 && !card.dataset.warned) {
-                            showNotification(`Станок #${line.id.toString().slice(-4)} требует ремонта!`, "warning");
-                            card.dataset.warned = "true";
-                        }
-                    }
-                }
+            if (Math.abs(newDurability - line.durability) > 0.01) {
+              line.durability = newDurability;
+              needsSave = true;
             }
+
+            const card = document.getElementById(`line-card-${line.id}`);
+            if (card) {
+              const batteryLevel = card.querySelector(".battery-level");
+              const batteryText = card.querySelector(
+                ".durability-container span",
+              );
+              const batteryTooltip = card.querySelector(".battery-tooltip");
+
+              if (batteryLevel && batteryText) {
+                batteryLevel.style.width = `${line.durability}%`;
+                batteryText.textContent = `${line.durability.toFixed(0)}%`;
+
+                batteryLevel.classList.remove("low", "medium");
+                if (line.durability <= 20) batteryLevel.classList.add("low");
+                else if (line.durability <= 50)
+                  batteryLevel.classList.add("medium");
+
+                if (batteryTooltip) {
+                  const hoursToBreakdown = line.durability / WEAR_RATE_PER_HOUR;
+                  batteryTooltip.textContent = `До поломки: ${formatTimeToBreakdown(hoursToBreakdown)}`;
+                }
+
+                if (
+                  line.durability < 10 &&
+                  line.durability > 5 &&
+                  !card.dataset.warned
+                ) {
+                  showNotification(
+                    `Станок #${line.id.toString().slice(-4)} требует ремонта!`,
+                    "warning",
+                  );
+                  card.dataset.warned = "true";
+                }
+              }
+            }
+          }
         });
 
-        if(needsSave) saveData();
-    }
+        if (needsSave) saveData();
+      }
 
-    function updateProgressBarsVisuals() {
+      function updateProgressBarsVisuals() {
         const jobs = appData.activeJobs;
-        jobs.forEach(job => {
-            const card = document.getElementById(`line-card-${job.lineId}`);
-            if(card) {
-                const bar = card.querySelector('.progress-bar');
-                const text = card.querySelector('.progress-text');
-                const totalTimeText = card.querySelector('.total-time-display');
-                const itemCountDisplay = card.querySelector('.item-count-display');
-                const itemTimeDisplay = card.querySelector('.item-time-display');
-                
-                if(bar && text) {
-                    const now = Date.now();
-                    const elapsedItem = (now - job.itemStartTime) / 1000;
-                    
-                    let itemProgress = (elapsedItem / job.itemDuration) * 100;
-                    if(itemProgress > 100) itemProgress = 100;
-                    
-                    const itemRemaining = job.itemDuration - elapsedItem;
+        jobs.forEach((job) => {
+          const card = document.getElementById(`line-card-${job.lineId}`);
+          if (card) {
+            const bar = card.querySelector(".progress-bar");
+            const text = card.querySelector(".progress-text");
+            const totalTimeText = card.querySelector(".total-time-display");
+            const itemCountDisplay = card.querySelector(".item-count-display");
+            const itemTimeDisplay = card.querySelector(".item-time-display");
 
-                    bar.style.width = `${itemProgress}%`;
-                    if(text) text.innerHTML = `${itemProgress.toFixed(0)}% | ${formatTime(itemRemaining)}`;
-                    if(totalTimeText) totalTimeText.textContent = formatTime(job.totalRemainingTime);
-                    
-                    if(itemCountDisplay) {
-                        itemCountDisplay.textContent = `${job.currentItemIndex} из ${job.totalQty}`;
-                    }
-                }
+            if (bar && text) {
+              const now = Date.now();
+              const elapsedItem = (now - job.itemStartTime) / 1000;
+
+              let itemProgress = (elapsedItem / job.itemDuration) * 100;
+              if (itemProgress > 100) itemProgress = 100;
+
+              const itemRemaining = job.itemDuration - elapsedItem;
+
+              bar.style.width = `${itemProgress}%`;
+              if (text)
+                text.innerHTML = `${itemProgress.toFixed(0)}% | ${formatTime(itemRemaining)}`;
+              if (totalTimeText)
+                totalTimeText.textContent = formatTime(job.totalRemainingTime);
+
+              if (itemCountDisplay) {
+                itemCountDisplay.textContent = `${job.currentItemIndex} из ${job.totalQty}`;
+              }
             }
+          }
         });
-    }
+      }
 
-    function processOfflineProgress() {
+      function processOfflineProgress() {
         const now = Date.now();
         let changed = false;
         let messages = [];
-        
-        for (let i = appData.activeJobs.length - 1; i >= 0; i--) {
-            const job = appData.activeJobs[i];
-            const product = appData.products.find(p => p.id === job.productId);
-            
-            const taskStartTime = job.itemStartTime - (job.currentItemIndex - 1) * job.itemDuration * 1000;
-            const totalElapsedSeconds = (now - taskStartTime) / 1000;
-            const totalItemsCompleted = Math.floor(totalElapsedSeconds / job.itemDuration);
-            
-            if (totalItemsCompleted >= job.totalQty) {
-                const completedQty = job.totalQty;
-                if (!appData.inventory[job.productId]) appData.inventory[job.productId] = 0;
-                appData.inventory[job.productId] += completedQty;
-                
-                const line = appData.productionLines.find(l => l.id === job.lineId);
-                if(line) line.status = 'free';
-                
-                appData.activeJobs.splice(i, 1);
-                changed = true;
-                messages.push(`${product.name}: ${completedQty} шт.`);
-            } else if (totalItemsCompleted > 0) {
-                const newlyCompleted = totalItemsCompleted - (job.currentItemIndex - 1);
-                
-                if (newlyCompleted > 0) {
-                    if (!appData.inventory[job.productId]) appData.inventory[job.productId] = 0;
-                    appData.inventory[job.productId] += newlyCompleted;
-                    
-                    job.currentItemIndex += newlyCompleted;
-                    job.itemStartTime = now;
-                    const remainingItems = job.totalQty - job.currentItemIndex + 1;
-                    job.totalRemainingTime = remainingItems * job.itemDuration;
-                    
-                    changed = true;
-                    messages.push(`${product.name}: ${newlyCompleted} шт.`);
-                }
-            }
-        }
-        
-        appData.productionLines.forEach(line => {
-            if(line.status === 'busy') {
-                const offlineHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
-                const wear = offlineHours * WEAR_RATE_PER_HOUR;
-                line.durability = Math.max(0, line.durability - wear);
-                changed = true;
-            }
-        });
-        
-        if(changed) {
-            saveData();
-            if(messages.length > 0) {
-                setTimeout(() => {
-                    showNotification(`📦 Пока вас не было: ${messages.join(', ')}`, "success");
-                }, 1000);
-            }
-        }
-    }
 
-    // --- СКЛАД ---
-    function renderWarehouse() {
-        const tbody = document.getElementById('inventory-list');
-        tbody.innerHTML = '';
+        for (let i = appData.activeJobs.length - 1; i >= 0; i--) {
+          const job = appData.activeJobs[i];
+          const product = appData.products.find((p) => p.id === job.productId);
+
+          const taskStartTime =
+            job.itemStartTime -
+            (job.currentItemIndex - 1) * job.itemDuration * 1000;
+          const totalElapsedSeconds = (now - taskStartTime) / 1000;
+          const totalItemsCompleted = Math.floor(
+            totalElapsedSeconds / job.itemDuration,
+          );
+
+          if (totalItemsCompleted >= job.totalQty) {
+            const completedQty = job.totalQty;
+            if (!appData.inventory[job.productId])
+              appData.inventory[job.productId] = 0;
+            appData.inventory[job.productId] += completedQty;
+
+            const line = appData.productionLines.find(
+              (l) => l.id === job.lineId,
+            );
+            if (line) line.status = "free";
+
+            appData.activeJobs.splice(i, 1);
+            changed = true;
+            messages.push(`${product.name}: ${completedQty} шт.`);
+          } else if (totalItemsCompleted > 0) {
+            const newlyCompleted =
+              totalItemsCompleted - (job.currentItemIndex - 1);
+
+            if (newlyCompleted > 0) {
+              if (!appData.inventory[job.productId])
+                appData.inventory[job.productId] = 0;
+              appData.inventory[job.productId] += newlyCompleted;
+
+              job.currentItemIndex += newlyCompleted;
+              job.itemStartTime = now;
+              const remainingItems = job.totalQty - job.currentItemIndex + 1;
+              job.totalRemainingTime = remainingItems * job.itemDuration;
+
+              changed = true;
+              messages.push(`${product.name}: ${newlyCompleted} шт.`);
+            }
+          }
+        }
+
+        appData.productionLines.forEach((line) => {
+          if (line.status === "busy") {
+            const offlineHours = (now - line.lastWorkTime) / (1000 * 60 * 60);
+            const wear = offlineHours * WEAR_RATE_PER_HOUR;
+            line.durability = Math.max(0, line.durability - wear);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          saveData();
+          if (messages.length > 0) {
+            setTimeout(() => {
+              showNotification(
+                `📦 Пока вас не было: ${messages.join(", ")}`,
+                "success",
+              );
+            }, 1000);
+          }
+        }
+      }
+
+      // --- СКЛАД ---
+      function renderWarehouse() {
+        const tbody = document.getElementById("inventory-list");
+        tbody.innerHTML = "";
         let hasItems = false;
-        appData.products.forEach(p => {
-            const count = appData.inventory[p.id] || 0;
-            hasItems = true;
-            tbody.innerHTML += `
+        appData.products.forEach((p) => {
+          const count = appData.inventory[p.id] || 0;
+          hasItems = true;
+          tbody.innerHTML += `
                 <tr>
                     <td>
                         <div style="display:flex; align-items:center; gap:10px;">
@@ -1542,67 +1888,76 @@
                 </tr>
             `;
         });
-        if(!hasItems) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">Склад пуст</td></tr>';
-    }
+        if (!hasItems)
+          tbody.innerHTML =
+            '<tr><td colspan="3" style="text-align:center">Склад пуст</td></tr>';
+      }
 
-    function unloadItem(productId) {
+      function unloadItem(productId) {
         const input = document.getElementById(`unload-qty-${productId}`);
         let qty = parseInt(input.value);
         const current = appData.inventory[productId] || 0;
-        if(qty <= 0) { showNotification("Введите число", "error"); return; }
-        if(qty > current) { showNotification("Недостаточно товара", "error"); return; }
+        if (qty <= 0) {
+          showNotification("Введите число", "error");
+          return;
+        }
+        if (qty > current) {
+          showNotification("Недостаточно товара", "error");
+          return;
+        }
         appData.inventory[productId] -= qty;
         saveData();
         renderWarehouse();
         showNotification(`Выгружено ${qty} шт.`, "success");
-    }
+      }
 
-    // --- ИНИЦИАЛИЗАЦИЯ ---
-    window.onload = function() {
+      // --- ИНИЦИАЛИЗАЦИЯ ---
+      window.onload = function () {
         loadData();
         renderEditor();
-        
-        document.addEventListener('keydown', function(event) {
-            const partsModal = document.getElementById('partsModal');
-            const repairModal = document.getElementById('repairModal');
-            const repairAllModal = document.getElementById('repairAllModal');
-            const positionModal = document.getElementById('positionModal');
-            
-            if (partsModal && partsModal.style.display === 'block') {
-                if (event.key === 'Escape') closePartsModal();
-                if (event.key === 'Enter' && document.activeElement.tagName !== 'TEXTAREA') {
-                    event.preventDefault();
-                    applyPartsChange();
-                }
-            }
-            
-            if (repairModal && repairModal.style.display === 'block') {
-                if (event.key === 'Escape') closeRepairModal();
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    confirmRepair();
-                }
-            }
 
-            if (repairAllModal && repairAllModal.style.display === 'block') {
-                if (event.key === 'Escape') closeRepairAllModal();
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    confirmRepairAll();
-                }
-            }
+        document.addEventListener("keydown", function (event) {
+          const partsModal = document.getElementById("partsModal");
+          const repairModal = document.getElementById("repairModal");
+          const repairAllModal = document.getElementById("repairAllModal");
+          const positionModal = document.getElementById("positionModal");
 
-            if (positionModal && positionModal.style.display === 'block') {
-                if (event.key === 'Escape') closePositionModal();
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    confirmPositionChange();
-                }
+          if (partsModal && partsModal.style.display === "block") {
+            if (event.key === "Escape") closePartsModal();
+            if (
+              event.key === "Enter" &&
+              document.activeElement.tagName !== "TEXTAREA"
+            ) {
+              event.preventDefault();
+              applyPartsChange();
             }
+          }
+
+          if (repairModal && repairModal.style.display === "block") {
+            if (event.key === "Escape") closeRepairModal();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              confirmRepair();
+            }
+          }
+
+          if (repairAllModal && repairAllModal.style.display === "block") {
+            if (event.key === "Escape") closeRepairAllModal();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              confirmRepairAll();
+            }
+          }
+
+          if (positionModal && positionModal.style.display === "block") {
+            if (event.key === "Escape") closePositionModal();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              confirmPositionChange();
+            }
+          }
         });
-    };
-
-</script>
-
-</body>
+      };
+    </script>
+  </body>
 </html>
